@@ -55,6 +55,33 @@ Erst nach eigener, ausdrücklicher Freigabe wird ein Bild mit einem eigenen Gemi
 
 Intervallwahl: 1m/2m/5m/15m/30m/1h/1d, jeweils begrenzte abrufbare Historie. Aktualisierung manuell per Button, mit fünfminütigem Cache. **Keine Echtzeitgarantie.** Öffentliche Yahoo-Daten können verzögert, lückenhaft, eingeschränkt oder zeitweise nicht verfügbar sein. Nutzung/Lizenzbestimmungen beachten; für automatische Echtgeld-Orders wären lizenzierte Broker-Datenfeeds, zuverlässige Ausführung und deutlich mehr Tests erforderlich.
 
+## Kostenloser XAUUSD-Abruf ohne TradingView-Upgrade (V2.3)
+
+**TradingView Basic blockiert den CSV-Export für diesen Nutzer.** Deshalb gibt es jetzt im
+Market Cockpit einen **direkt bedienbaren** Button
+`Kostenlos XAUUSD-Spotkerzen laden (Dukascopy)`. Es ist weder ein API-Key noch eine
+kostenpflichtige TradingView-Mitgliedschaft nötig. Die öffentlich verfügbaren
+historischen Dukascopy-`BID_candles_min_1.bi5`-Dateien werden in Python über
+LZMA/Binärformat decodiert und in 1m, 5m, 15m oder 30m aggregiert.
+Bei vollständiger OHLC-Historie wird der bisherige Drei-Strategien-Check gestartet.
+
+- **Nicht TradingView:** Es handelt sich um **Dukascopy XAUUSD BID** und nicht OANDA:XAUUSD.
+  Brokerkurse, Spread und Bid/Mid/Ask können unterschiedlich sein.
+- **Nicht live:** Die Tagesdateien können erst **nach dem Handelstag** vorliegen;
+  letzter Kerzenzeitstempel und Verzögerung werden immer angezeigt.
+- **Temporär blockiert:** Netzwerkanfragen an den kostenlosen Feed können von
+  Streamlit Cloud oder Dukascopy gedrosselt werden (429/503), oder Tagesdateien fehlen.
+  In dem Fall wird ein Fehler angezeigt; es werden **keine** Preise erfunden.
+- **Kosten:** Keine API-/Abo-Gebühr durch unsere App für diesen Abruf;
+  externe Nutzungsbedingungen und freie Verfügbarkeit können sich ändern.
+- **Risiko:** Historische Regel-Setups sind nicht automatisch handelbar;
+  niemals direkt als Echtgeld-Order oder Echtzeit-Signal nutzen.
+- **Cloud-Test:** Die Parser-Tests verwenden Mockdaten. Der echte Dukascopy
+  Download muss in der laufenden Streamlit-Cloud getestet werden.
+
+Dukascopy [Historical Data Export](https://www.dukascopy.com/api/data/get/historical-data-export)
+und [Chartdatenformat (Beispieldokumentation)](https://github.com/zero-was-here/tradingbot/blob/main/docs/data.md).
+
 ## Datenquelle im Cockpit (V2.3)
 
 TradingView-CSV ist für den gewünschten XAUUSD-Spotchart der **primäre manuelle Testweg**.
@@ -107,7 +134,8 @@ GitHub Actions führt `python -m compileall` sowie `python -m unittest discover 
 
 - `app.py` — neue Navigation, UI und Abläufe
 - `theme.py` — Schwarz-Lila-Designsystem ohne Farbverläufe
-- `market_data.py` — historische Daten, eindeutige Instrumente
+- `market_data.py` — historische Yahoo-Daten (Alternativmarkt)
+- `dukascopy_data.py` — kostenlose historische XAUUSD-BID-Daten, Binär-Decoder, Resampling
 - `offline.py` — CSV-Verarbeitung und Marktindikatoren
 - `strategies.py` — getrennte Breakout-, Pullback- und Range-Logik sowie Preiszonen
 - `engine.py` — Ergebnisvalidierung
