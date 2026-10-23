@@ -11,6 +11,9 @@ MARKETS = {
     "NASDAQ 100 Index (^NDX) · kein handelbares Produkt": "^NDX",
     "S&P 500 E-mini-Future (ES=F)": "ES=F",
     "NASDAQ 100 E-mini-Future (NQ=F)": "NQ=F",
+    "Gold ETF (GLD) · ETF statt Spot/Future": "GLD",
+    "S&P 500 ETF (SPY) · ETF statt Index": "SPY",
+    "NASDAQ 100 ETF (QQQ) · ETF statt Index": "QQQ",
 }
 PERIODS = {
     "1m": "5d", "2m": "5d", "5m": "5d",
