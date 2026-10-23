@@ -1,4 +1,4 @@
-"""ChartPilot AI V1.2: kostenfreier Offline-Modus; keine API-Abhaengigkeit, keine Orders."""
+"""ChartPilot AI V1.3: kostenfreier Offline-Modus; keine API-Abhaengigkeit, keine Orders."""
 from __future__ import annotations
 
 import csv
@@ -9,11 +9,12 @@ import streamlit as st
 import altair as alt
 
 from offline import analyze_ohlc, load_ohlc
+from market_data import MARKETS, PERIODS, age_notice, fetch_history
 
 ROOT = Path(__file__).resolve().parent
 DEMO_CSV = ROOT / 'sample' / 'demo_simuliert_5m.csv'
 
-st.set_page_config(page_title='ChartPilot · kostenlos V1.2', page_icon='📈', layout='wide')
+st.set_page_config(page_title='ChartPilot · kostenlos V1.3', page_icon='📈', layout='wide')
 st.markdown("""<style>
 .stApp { background:#0a101b; color:#e4ecf8; }
 div[data-testid="stMetric"] { background:#111d30; border:1px solid #26374f; padding:12px; border-radius:12px; }
@@ -65,6 +66,35 @@ def show_analysis(a: dict, provenance: str):
     st.caption(f"Quelle: {a['detected_symbol']} | Zeitrahmen: {a['detected_timeframe']} | letzter Zeitpunkt: {a['screenshot_time']}")
 
 
+@st.cache_data(ttl=300, show_spinner=False, max_entries=20)
+def cached_market_history(ticker: str, interval: str):
+    return fetch_history(ticker, interval)
+
+
+def price_chart(history):
+    """Zeige kleine Kursbewegungen ohne erzwungenen Nullpunkt."""
+    frame = history[['close', 'EMA20', 'EMA50']].tail(150).reset_index(drop=True)
+    frame['kerze'] = range(len(frame))
+    long_frame = frame.melt(id_vars='kerze', var_name='Linie', value_name='Preis')
+    price_plot = (
+        alt.Chart(long_frame)
+        .mark_line(strokeWidth=2)
+        .encode(
+            x=alt.X('kerze:Q', title='Kerze (Reihenfolge)'),
+            y=alt.Y('Preis:Q', title='Preis / Punkte', scale=alt.Scale(zero=False)),
+            color=alt.Color('Linie:N', title=''),
+            tooltip=[
+                alt.Tooltip('kerze:Q', title='Kerze'),
+                alt.Tooltip('Linie:N'),
+                alt.Tooltip('Preis:Q', format='.3f')
+            ],
+        )
+        .properties(height=360)
+        .interactive()
+    )
+    st.altair_chart(price_plot, use_container_width=True)
+
+
 with st.sidebar:
     st.header('⚙️ Einstellungen')
     st.success('Kostenloser Regelmodus · **kein API-Key erforderlich**')
@@ -76,11 +106,41 @@ with st.sidebar:
     timeframe = st.selectbox('Zeitrahmen (manuelle Angabe)', ['1m', '3m', '5m', '15m', '30m', '1h', '4h', '1D'], index=2)
     st.caption('Wichtig: Auswahl von Markt und Zeitraum ersetzt keine Verifikation der hochgeladenen Daten.')
 
-st.caption('CHARTPILOT / V1.2 · KOSTENLOSER MODUS')
+st.caption('CHARTPILOT / V1.3 · HISTORISCHE MARKTDATEN')
 st.title('Dein Chart. Klare Bedingungen. Keine API-Kosten.')
 st.write('Bilder hier ansehen – oder OHLC-Kursdaten mit transparenten Regeln auswerten, ohne API-Kosten.')
 
-tab_csv, tab_img = st.tabs(['📊 Kostenlose Kursdaten-Analyse', '📸 Screenshot ansehen'])
+tab_market, tab_csv, tab_img = st.tabs(['🌍 Historische Marktdaten', '📊 Eigene CSV-Analyse', '📸 Screenshot ansehen'])
+
+with tab_market:
+    st.subheader('Echte historische Marktkerzen – ohne API-Key')
+    st.info('Quelle: Yahoo Finance über yfinance. **Kein garantierter Echtzeitfeed**; Kurse können verzögert, lückenhaft oder vorübergehend nicht abrufbar sein. Für Lernen und Paper-Trading.')
+    st.warning('**Wichtig:** Gold-Futures (GC=F) unterscheiden sich von XAU/USD Spot auf TradingView. Indizes wie ^GSPC und ^NDX sind nicht direkt handelbar. Keine Echtgeld-Signale!')
+    m1, m2 = st.columns([2, 1])
+    with m1:
+        selected_market = st.selectbox('Historischer Markt', options=list(MARKETS), index=0, key='selected_market')
+    with m2:
+        selected_interval = st.selectbox('Kerzen-Zeitrahmen', options=list(PERIODS), index=2, key='selected_interval')
+    st.caption('Abrufzeitraum: ' + PERIODS[selected_interval] + ' | Datenquelle kann zeitlich verzögert sein und ist nicht identisch mit deinem Brokerchart.')
+    if st.button('📈 Historische Kerzen laden und analysieren', type='primary', use_container_width=True):
+        with st.spinner('Historische Marktdaten werden abgerufen...'):
+            try:
+                data = cached_market_history(MARKETS[selected_market], selected_interval)
+                a, enriched, _ = analyze_ohlc(data, selected_market, style, selected_interval)
+                st.session_state['market_result'] = a
+                st.session_state['market_history'] = enriched
+                st.session_state['market_label'] = selected_market
+                st.session_state['market_interval'] = selected_interval
+                st.session_state['market_age'] = age_notice(data)
+            except Exception as exc:
+                st.error(str(exc))
+                st.info('Wenn Yahoo Finance gerade nicht erreichbar ist, kannst du im zweiten Tab eine OHLC-CSV hochladen.')
+    if 'market_result' in st.session_state:
+        st.divider()
+        st.markdown('**Datensatz:** ' + st.session_state['market_label'] + ' · ' + st.session_state['market_interval'])
+        st.warning(st.session_state['market_age'])
+        price_chart(st.session_state['market_history'])
+        show_analysis(st.session_state['market_result'], 'Regelbasierte Analyse historischer Yahoo-Kerzen – keine KI, kein Echtzeit-Signal, kein Broker-Feed')
 
 with tab_csv:
     st.write('**CSV-Datei mit mindestens 60 Kerzen hochladen.** Die Auswertung läuft im Streamlit-Prozess: lokal auf deinem PC oder bei Veröffentlichung auf dem Cloud-Server.')
@@ -109,24 +169,7 @@ with tab_csv:
             st.warning('Simulationsergebnis – nicht für echte Handelsentscheidungen verwenden.')
         st.markdown(f"**Ausgewertete Datei:** {st.session_state['csv_file']}")
         history = st.session_state['csv_history']
-        # The default Streamlit line chart can include zero on the price axis.
-        # Prices for short-term trading need a data-driven axis range instead.
-        frame = history[['close', 'EMA20', 'EMA50']].tail(150).reset_index(drop=True)
-        frame['kerze'] = range(len(frame))
-        long_frame = frame.melt(id_vars='kerze', var_name='Linie', value_name='Preis')
-        price_chart = (
-            alt.Chart(long_frame)
-            .mark_line(strokeWidth=2)
-            .encode(
-                x=alt.X('kerze:Q', title='Kerze (Reihenfolge)'),
-                y=alt.Y('Preis:Q', title='Preis / Punkte', scale=alt.Scale(zero=False)),
-                color=alt.Color('Linie:N', title=''),
-                tooltip=[alt.Tooltip('kerze:Q', title='Kerze'), alt.Tooltip('Linie:N'), alt.Tooltip('Preis:Q', format='.3f')],
-            )
-            .properties(height=360)
-            .interactive()
-        )
-        st.altair_chart(price_chart, use_container_width=True)
+        price_chart(history)
         show_analysis(st.session_state['csv_result'], 'Automatische Offline-Regeln auf OHLC-Kursdaten – keine Bild-KI, kein Live-Signal')
         a = st.session_state['csv_result']
         export = {k: a[k] for k in ('signal','trend','summary','proposed_entry','stop_loss','take_profit','risk_reward','screenshot_time')}
@@ -145,4 +188,4 @@ with tab_img:
         st.info('Hier kannst du deinen eigenen TradingView-Screenshot hochladen. Die V1.2 zeigt ihn nur an; sie erzeugt daraus keine Signale.')
 
 st.divider()
-st.caption('V1.2: Kein API-Key, kein Live-Feed, kein geprüfter Handelsalgorithmus. Auf Streamlit Community Cloud werden Uploads vom Cloud-Server verarbeitet, nicht ausschließlich auf deinem PC. Keine dauerhafte Speicherung im Projektcode vorgesehen. Nur Lernen und Paper-Trading.')
+st.caption('V1.3: Historische Yahoo-Daten (nicht Echtzeit), kein API-Key, kein Brokerhandel, kein geprüfter Handelsalgorithmus. Auf Streamlit Community Cloud werden Uploads vom Cloud-Server verarbeitet, nicht ausschließlich auf deinem PC. Keine dauerhafte Speicherung im Projektcode vorgesehen. Nur Lernen und Paper-Trading.')
