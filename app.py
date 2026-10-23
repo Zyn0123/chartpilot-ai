@@ -6,6 +6,7 @@ import io
 from pathlib import Path
 
 import streamlit as st
+import altair as alt
 
 from offline import analyze_ohlc, load_ohlc
 
@@ -108,7 +109,24 @@ with tab_csv:
             st.warning('Simulationsergebnis – nicht für echte Handelsentscheidungen verwenden.')
         st.markdown(f"**Ausgewertete Datei:** {st.session_state['csv_file']}")
         history = st.session_state['csv_history']
-        st.line_chart(history[['close', 'EMA20', 'EMA50']].tail(150), x_label='Kerze (Reihenfolge)', y_label='Preis / Punkte')
+        # The default Streamlit line chart can include zero on the price axis.
+        # Prices for short-term trading need a data-driven axis range instead.
+        frame = history[['close', 'EMA20', 'EMA50']].tail(150).reset_index(drop=True)
+        frame['kerze'] = range(len(frame))
+        long_frame = frame.melt(id_vars='kerze', var_name='Linie', value_name='Preis')
+        price_chart = (
+            alt.Chart(long_frame)
+            .mark_line(strokeWidth=2)
+            .encode(
+                x=alt.X('kerze:Q', title='Kerze (Reihenfolge)'),
+                y=alt.Y('Preis:Q', title='Preis / Punkte', scale=alt.Scale(zero=False)),
+                color=alt.Color('Linie:N', title=''),
+                tooltip=[alt.Tooltip('kerze:Q', title='Kerze'), alt.Tooltip('Linie:N'), alt.Tooltip('Preis:Q', format='.3f')],
+            )
+            .properties(height=360)
+            .interactive()
+        )
+        st.altair_chart(price_chart, use_container_width=True)
         show_analysis(st.session_state['csv_result'], 'Automatische Offline-Regeln auf OHLC-Kursdaten – keine Bild-KI, kein Live-Signal')
         a = st.session_state['csv_result']
         export = {k: a[k] for k in ('signal','trend','summary','proposed_entry','stop_loss','take_profit','risk_reward','screenshot_time')}
