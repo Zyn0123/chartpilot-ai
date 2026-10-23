@@ -16,6 +16,7 @@ class AppSmokeTests(unittest.TestCase):
         self.assertGreaterEqual(len(at.selectbox), 3)
         for i in range(1, 8):
             self.assertIsNotNone(at.button(key=f"cp_nav_{i}"))
+        self.assertIsNotNone(at.button(key="tickerlayer_load"))
         self.assertIsNotNone(at.button(key="spot_load"))
         self.assertIsNotNone(at.button(key="go_tradingview"))
         self.assertIsNotNone(at.button(key="yahoo_load"))
