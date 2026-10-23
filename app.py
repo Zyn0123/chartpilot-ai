@@ -181,12 +181,20 @@ with st.sidebar:
         '<div class="cp-side-section"><span class="cp-side-section-number">01</span>'
         '<span>WORKSPACE</span></div>', unsafe_allow_html=True
     )
+    # Native buttons prevent the default radio dots from leaking through Streamlit CSS.
+    st.session_state.setdefault("cp_page", MENU[0])
     with st.container(key="cp_navigation"):
-        page = st.radio(
-            "Arbeitsbereich", MENU, key="nav",
-            format_func=lambda item: NAV_LABELS[item],
-            label_visibility="collapsed",
-        )
+        for position, destination in enumerate(MENU, start=1):
+            selected = st.session_state.cp_page == destination
+            if st.button(
+                NAV_LABELS[destination], key=f"cp_nav_{position}",
+                type="primary" if selected else "secondary",
+                use_container_width=True,
+            ):
+                if not selected:
+                    st.session_state.cp_page = destination
+                    st.rerun()
+    page = st.session_state.cp_page
     st.markdown(
         '<div class="cp-side-section cp-side-section-market">'
         '<span class="cp-side-section-number">02</span><span>MARKTKONTEXT</span></div>',
