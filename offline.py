@@ -57,16 +57,21 @@ def load_ohlc(content: bytes) -> pd.DataFrame:
         if name in df.columns:
             df[name] = _number(df[name])
     if 'time' in df.columns:
-        if pd.api.types.is_numeric_dtype(df['time']):
-            date = pd.to_datetime(df['time'], unit='s', errors='coerce', utc=True)
+        times = df['time']
+        numeric = pd.to_numeric(times, errors='coerce')
+        if numeric.notna().all():
+            maximum = float(numeric.abs().median())
+            unit = 'us' if maximum > 1e14 else ('ms' if maximum > 1e11 else 's')
+            date = pd.to_datetime(numeric, unit=unit, errors='coerce', utc=True)
         else:
-            date = pd.to_datetime(df['time'], errors='coerce', utc=True, format='mixed')
-        if date.notna().sum() >= len(df) * .95:
-            df['time'] = date
-            if not df['time'].is_monotonic_increasing:
-                raise ValueError('Zeitstempel sind nicht aufsteigend sortiert. Bitte zuerst aufsteigend sortieren.')
-        else:
-            df.drop(columns=['time'], inplace=True)
+            date = pd.to_datetime(times, errors='coerce', utc=True, format='mixed')
+        if date.isna().any():
+            raise ValueError('Ungültige Zeitstempel im CSV-Export – Time-Spalte prüfen.')
+        df['time'] = date
+        if not df['time'].is_monotonic_increasing:
+            raise ValueError('Zeitstempel sind nicht aufsteigend sortiert.')
+        if df['time'].duplicated().any():
+            raise ValueError('Doppelte Zeitstempel – ungültige Kerzendatei.')
     if len(df) < 60:
         raise ValueError('Mindestens 60 Kerzen nötig, damit EMA50 und Vergleichsfenster sinnvoll sind.')
     if df[list(_REQUIRED)].isna().any().any():
