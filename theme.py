@@ -106,39 +106,63 @@ hr {border-color:#39224e !important;}
 .cp-side-section-number {color:#be79f5;font-size:.65rem;}
 .cp-side-section-market {margin-top:1.1rem;}
 .cp-side-section-status {margin-top:1.05rem;}
-/* Turn one accessible Streamlit radio group into a left-rail navigation. */
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) [role="radiogroup"] {
-  gap:.28rem !important;width:100% !important;display:flex !important;flex-direction:column !important;
+/* Navigation uses real buttons: no browser radio dots, no fragile radio selectors. */
+[data-testid="stSidebar"] .st-key-cp_navigation [data-testid="stVerticalBlock"] {
+  gap:.20rem !important;
 }
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"] {
-  display:flex !important;align-items:center !important;
-  width:100% !important;min-height:42px !important;box-sizing:border-box !important;
-  padding:.45rem .75rem !important;margin:0 !important;
-  background:#100a18 !important;border:1px solid #1f152b !important;
-  border-left:3px solid transparent !important;
-  color:#c2b5d1 !important;cursor:pointer !important;
+[data-testid="stSidebar"] .st-key-cp_navigation .stButton {
+  margin:0 !important;
+}
+[data-testid="stSidebar"] .st-key-cp_navigation button,
+[data-testid="stSidebar"] [data-testid="stButton"] button[id^="cp_nav_"] {
+  width:100% !important;
+  min-height:43px !important;
+  padding:.64rem .83rem !important;
+  display:flex !important;
+  justify-content:flex-start !important;
+  text-align:left !important;
   border-radius:0 !important;
+  box-shadow:none !important;
+  background:#100a18 !important;
+  color:#c9bdd5 !important;
+  border:1px solid #26182f !important;
+  border-left:3px solid transparent !important;
+  font-size:.79rem !important;
+  font-weight:830 !important;
+  letter-spacing:.025em !important;
 }
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"]:hover {
-  background:#1c102b !important;border-color:#6d3d92 !important;
+[data-testid="stSidebar"] .st-key-cp_navigation button p,
+[data-testid="stSidebar"] .st-key-cp_navigation button span {
+  font-size:.79rem !important;
+  font-weight:830 !important;
+  color:inherit !important;
+  line-height:1.25 !important;
+  white-space:normal !important;
 }
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"]:has(input:checked) {
-  background:#2a153e !important;border:1px solid #8551b8 !important;
-  border-left:3px solid #c17bff !important;color:#fff !important;
+[data-testid="stSidebar"] .st-key-cp_navigation button:hover {
+  background:#1e102e !important;
+  color:#fbf4ff !important;
+  border-color:#68408c !important;
+  border-left-color:#8452ad !important;
 }
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"]:has(input:focus-visible) {
-  outline:2px solid #d9acff !important;outline-offset:2px !important;
+[data-testid="stSidebar"] .st-key-cp_navigation button[kind="primary"],
+[data-testid="stSidebar"] .st-key-cp_navigation button[data-testid="stBaseButton-primary"],
+[data-testid="stSidebar"] .st-key-cp_navigation button[data-testid="stBaseButton-primaryFormSubmit"] {
+  background:#2a123f !important;
+  border:1px solid #7843a3 !important;
+  border-left:4px solid #c475ff !important;
+  color:#faf0ff !important;
+  font-weight:900 !important;
+  padding-left:.76rem !important;
 }
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"] > div:first-of-type {
-  display:none !important;
+[data-testid="stSidebar"] .st-key-cp_navigation button[kind="primary"]:hover,
+[data-testid="stSidebar"] .st-key-cp_navigation button[data-testid="stBaseButton-primary"]:hover {
+  background:#32164b !important;
+  border-left-color:#d79aff !important;
 }
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"] [data-testid="stMarkdownContainer"] p {
-  font-size:.76rem !important;font-weight:850 !important;
-  line-height:1.35 !important;letter-spacing:.035em !important;
-  color:inherit !important;margin:0 !important;
-}
-:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) [data-testid="stRadio"] {
-  width:100% !important;margin:0 !important;
+[data-testid="stSidebar"] .st-key-cp_navigation button:focus-visible {
+  outline:2px solid #dba5ff !important;
+  outline-offset:2px !important;
 }
 /* Market controls are a distinct and quieter control surface. */
 :is(.st-key-cp_market_controls,[data-testid="st-key-cp_market_controls"]) {
