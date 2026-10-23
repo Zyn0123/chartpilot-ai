@@ -182,6 +182,23 @@ def analyze_ohlc(df: pd.DataFrame, market: str, style: str, timeframe: str) -> t
         'screenshot_time': str(df.time.iloc[-1]) if 'time' in df else 'Zeitstempel nicht vorhanden',
     }
     result = normalize_analysis(raw)
+    long_threshold = prev2_high + buffer
+    short_threshold = prev2_low - buffer
+    long_closes = int((last2 > long_threshold).sum())
+    short_closes = int((last2 < short_threshold).sum())
+    # Expose every gating criterion for a human-readable diagnosis.
+    # These are historical conditions, not independent probabilities.
+    checks = {
+        'long_trend': bool(fast_above),
+        'short_trend': bool(fast_below),
+        'long_confirmations': long_closes,
+        'short_confirmations': short_closes,
+        'long_threshold': float(long_threshold),
+        'short_threshold': float(short_threshold),
+        'needed_confirmations': 2,
+        'atr_buffer': float(buffer),
+    }
     meta = {'close': close, 'atr': atr, 'ema20': ema20, 'ema50': ema50,
-            'rsi': rsi, 'macd_hist': macd_hist, 'support': support, 'resistance': resistance}
+            'rsi': rsi, 'macd_hist': macd_hist, 'support': support, 'resistance': resistance,
+            'checks': checks}
     return result, enriched, meta
