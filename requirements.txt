@@ -2,3 +2,4 @@ streamlit>=1.39,<2
 pandas>=2.2,<3
 altair>=5,<7
 yfinance>=0.2.66,<2
+requests>=2.31,<3
