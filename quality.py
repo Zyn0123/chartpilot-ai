@@ -37,10 +37,15 @@ def inspect_candles(df: pd.DataFrame, label: str, timeframe: str, *,
                 issues.append('Zeitstempel liegt in der Zukunft; Zeitzone/Datenquelle prüfen.')
             elif not is_demo:
                 expected = PERIOD_MINUTES.get(timeframe, 5)
-                # Conservative age thresholds: closed markets may legitimately be stale.
-                if age > max(45, expected * 4):
+                # A last-bar timestamp is the START of a closed candle. For 5m scalping,
+                # a 40-minute old bar must never be considered current.
+                allowed_age = max(8, expected * 2 + 3) if expected <= 60 else expected * 2 + 15
+                if age > allowed_age:
                     state = 'HISTORISCH'
-                    issues.append('Letzte Kerze ist älter als der gewählte Zeitrahmen. Kein aktuelles Signal.')
+                    issues.append(
+                        f'Letzte Kerze ist {age:.1f} Minuten alt '
+                        f'(Grenze {allowed_age:.0f} Min.). Keine aktuelle Setup-Empfehlung.'
+                    )
                 else:
                     state = 'VERZÖGERT / UNBESTÄTIGT'
             if age is not None and age < -5:
