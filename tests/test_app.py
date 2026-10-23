@@ -25,8 +25,8 @@ class AppSmokeTests(unittest.TestCase):
         at.button(key="go_tradingview").click().run()
         self.assertEqual(len(at.exception), 0, str([x.message for x in at.exception]))
         self.assertEqual(at.session_state["cp_page"], "02  DATA HUB")
-        self.assertIsNotNone(at.get(key="tv_symbol"))
-        self.assertIsNotNone(at.get(key="csvupload"))
+        self.assertEqual(at.session_state["tv_symbol"], "OANDA:XAUUSD")
+        self.assertTrue(any("CSV validieren" in x.label for x in at.button))
 
     def test_sidebar_buttons_switch_pages(self):
         at = self.fresh()
