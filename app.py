@@ -1,4 +1,4 @@
-"""ChartPilot V2.3 · independent black/purple market research workstation.
+"""ChartPilot V2.4 · independent black/purple market research workstation.
 
 Trading education and paper trading only. No automatic or real-money order routing.
 """
@@ -19,6 +19,7 @@ from backtest import run_backtest
 from market_data import MARKETS, PERIODS, fetch_history
 from dukascopy_data import fetch_spot_gold, SOURCE as DUKASCOPY_SOURCE, SUPPORTED as SPOT_PERIODS
 from oanda_data import fetch_oanda_practice, SOURCE as OANDA_SOURCE, FRAMES as OANDA_FRAMES
+from tickerlayer_data import fetch_xauusd, SOURCE as TICKERLAYER_SOURCE, INTERVALS as TICKERLAYER_INTERVALS
 from offline import analyze_ohlc, load_ohlc
 from strategies import analyze_strategies
 from quality import inspect_candles
@@ -38,7 +39,7 @@ NAV_LABELS = {
     "07  SOURCES": "07    DATEN & QUELLEN",
 }
 
-st.set_page_config(page_title="ChartPilot / Terminal V2.3", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="ChartPilot / Terminal V2.4", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
 apply_theme(st)
 
 @st.cache_data(ttl=300, show_spinner=False, max_entries=24)
@@ -308,7 +309,7 @@ with st.sidebar:
         '<div><div class="cp-sidebar-name">CHART<span>PILOT</span></div>'
         '<div class="cp-sidebar-tagline">MARKET RESEARCH TERMINAL</div></div>'
         '</div>'
-        '<div class="cp-sidebar-version"><span class="cp-status-dot"></span> TERMINAL V2.3 '
+        '<div class="cp-sidebar-version"><span class="cp-status-dot"></span> TERMINAL V2.4 '
         '<span class="cp-version-right">PAPER MODE</span></div>'
         '</div>', unsafe_allow_html=True
     )
@@ -390,6 +391,51 @@ if ds and ds["interval"] != interval:
 
 if page.startswith("01"):
     st.subheader("MARKET COCKPIT")
+    st.markdown(
+        '<div class="cp-slab"><div class="cp-kicker">AKTUELLE XAUUSD-KERZEN / API TEST</div>'
+        '<h3>TickerLayer – kurzfristige Spotgold-Referenzkerzen</h3>'
+        '<div class="cp-tiny">1m / 5m / 15m / 1h · Kostenloser REST-Tarif mit eigenem Schlüssel. '
+        'Keine garantierten Echtzeitdaten, keine OANDA-Kurse, kein automatisches Trading.</div></div>',
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "TickerLayer stellt indikative CFD-basierte XAUUSD-Referenzpreise bereit. "
+        "Sie müssen NICHT mit TradingView/OANDA übereinstimmen. "
+        "Die App zeigt letzte Kerzenzeit und blockiert alte Kursstände. "
+        "Das kostenlose Kontingent hat 3.000 REST-Abfragen pro Monat; "
+        "wir rufen Daten nur auf deinen Klick ab."
+    )
+    st.markdown("[Kostenlosen TickerLayer-Zugang erstellen (keine Kreditkarte laut Anbieter)]"
+                "(https://tickerlayer.com/signup)")
+    tkey=st.text_input(
+        "TickerLayer API-Key (nur in dieser Sitzung, NICHT im Chat teilen)",
+        key="tickerlayer_key",type="password",
+    )
+    if st.button(
+        "◆ Neueste XAUUSD-Kerzen abrufen / 5m analysieren",
+        key="tickerlayer_load",type="primary",use_container_width=True,
+        disabled=not (tkey and interval in TICKERLAYER_INTERVALS),
+    ):
+        try:
+            with st.spinner("XAUUSD-Referenzkerzen laden und auf Zeitstempel prüfen ..."):
+                df=fetch_xauusd(tkey,interval)
+                set_dataset(df,TICKERLAYER_SOURCE,
+                            "XAUUSD (TickerLayer · indikativ)",interval)
+            audit=inspect_candles(df,TICKERLAYER_SOURCE,interval)
+            if audit.state=="VERZÖGERT / UNBESTÄTIGT":
+                st.success("Neuere abgeschlossene Kerzen erhalten. "
+                           "Zeitstempel und Kurse trotzdem mit deiner Plattform vergleichen.")
+            else:
+                st.error("Die API lieferte nur alte Daten. "
+                         "Für aktuelle Scalping-Analysen bleibt das Signal gesperrt.")
+        except Exception as exc:
+            st.error(str(exc))
+            st.info("Kein Echtzeitsignal ohne aktuelle vollständige Kerzen. "
+                    "Kontingent/Account-Zugang und Marktöffnungszeit prüfen.")
+    if interval not in TICKERLAYER_INTERVALS:
+        st.caption("TickerLayer hier nur für 1m, 5m, 15m oder 1h unterstützt.")
+    st.markdown("---")
+
     with st.expander("◆ OANDA XAU_USD – optionaler Demo-Datenzugang (kein Abo von TradingView)", expanded=False):
         st.caption("Optional: Historische MID-Kerzen direkt über OANDA v20 Practice abrufen. "
                    "Voraussetzung: berechtigter API-Zugang zu einem OANDA-v20-Demokonto "
@@ -415,25 +461,26 @@ if page.startswith("01"):
             except Exception as exc:
                 st.error(str(exc))
         st.markdown("[Offizielle OANDA-v20-API-Anleitung](https://developer.oanda.com/rest-live-v20/introduction/)")
-    st.markdown(
+    with st.expander("Archiv: Dukascopy XAUUSD (kann mehrere Tage alt sein)", expanded=False):
+        st.warning("Nur historische Forschung. Derzeit nicht als Quelle für aktuelle Scalping-Setups geeignet.")
+        st.markdown(
         '<div class="cp-slab"><div class="cp-kicker">XAUUSD SPOT / KOSTENLOSE HISTORISCHE DATEN</div>'
         '<h3>Gold-Spotkerzen direkt abrufen – ohne TradingView-Abo</h3>'
         '<div class="cp-tiny">Quelle: Dukascopy · historische BID-Kerzen (nicht OANDA/TradingView). '
         'Tagesarchive können verspätet erscheinen. Keine Echtzeitkurse und keine automatische Orders.</div></div>',
         unsafe_allow_html=True,
     )
-    if interval in SPOT_PERIODS:
-        if st.button("◆ Kostenlos XAUUSD-Spotkerzen laden (Dukascopy)",type="primary",key="spot_load",use_container_width=True):
-            try:
-                with st.spinner("Dukascopy-Tagesarchive abrufen und abgeschlossene Kerzen zusammenfügen ..."):
-                    df=cached_spot(interval)
-                    set_dataset(df,DUKASCOPY_SOURCE,"XAUUSD (Dukascopy BID)",interval)
-                st.success("Historische Spotgold-Kerzen abgerufen. Quellenpreise weichen von OANDA ab. Letzte Kerzenzeit unten prüfen.")
-            except Exception as exc:
-                st.error("Dukascopy-Daten konnten nicht geladen werden: "+str(exc))
-                st.info("Die kostenlose Quelle kann gedrosselt sein oder Tagesdaten verspätet bereitstellen. Kein Abo erforderlich.")
-    else:
-        st.warning("Für den Dukascopy-Spotabruf bitte links 1m, 5m, 15m oder 30m wählen.")
+        if interval in SPOT_PERIODS:
+            if st.button("Dukascopy-Archiv laden (kein aktueller Feed)",key="spot_load",use_container_width=True):
+                try:
+                    with st.spinner("Dukascopy-Tagesarchive abrufen..."):
+                        df=cached_spot(interval)
+                        set_dataset(df,DUKASCOPY_SOURCE,"XAUUSD (Dukascopy BID)",interval)
+                    st.info("Dukascopy-Tagesarchiv geladen. Keine aktuelle Scalp-Empfehlung bei alten Daten.")
+                except Exception as exc:
+                    st.error("Archiv nicht erreichbar: "+str(exc))
+        else:
+            st.caption("Archivintervalle: 1m / 5m / 15m / 30m.")
     if st.button("TradingView-CSV importieren (falls verfügbar)",key="go_tradingview",use_container_width=True):
         st.session_state.cp_page="02  DATA HUB"
         st.rerun()
@@ -680,6 +727,10 @@ else:
     st.subheader("SOURCE CENTER / TRANSPARENZ")
     st.markdown("#### QUELLEN & KOMPATIBILITÄT")
     sources=pd.DataFrame([
+        {"Quelle":"TickerLayer (persönlicher kostenloser API-Key)",
+         "Instrumente":"XAUUSD indikative CFD-Referenzkerzen, nicht OANDA",
+         "Einsatz":"1m/5m/15m/1h; letzte verfügbare Kerze muss auf Aktualität geprüft werden",
+         "API-Key":"Ja: kostenloser persönlicher REST-Key, 3.000 monatliche Abfragen laut Anbieter"},
         {"Quelle":"OANDA v20 Practice (optional, eigener Token)",
          "Instrumente":"XAU_USD (historische MID-Kerzen; nicht automatisch identisch mit TradingView)",
          "Einsatz":"Nur GET der letzten abgeschlossenen Kerzen, kein Live-Streaming",
