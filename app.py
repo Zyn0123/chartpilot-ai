@@ -1,4 +1,4 @@
-"""ChartPilot V2 · independent black/purple market research workstation.
+"""ChartPilot V2.2 · independent black/purple market research workstation.
 
 Trading education and paper trading only. No automatic or real-money order routing.
 """
@@ -36,7 +36,7 @@ NAV_LABELS = {
     "07  SOURCES": "07    DATEN & QUELLEN",
 }
 
-st.set_page_config(page_title="ChartPilot / Terminal V2", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="ChartPilot / Terminal V2.2", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
 apply_theme(st)
 
 @st.cache_data(ttl=300, show_spinner=False, max_entries=24)
