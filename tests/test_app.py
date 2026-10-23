@@ -16,7 +16,17 @@ class AppSmokeTests(unittest.TestCase):
         self.assertGreaterEqual(len(at.selectbox), 3)
         for i in range(1, 8):
             self.assertIsNotNone(at.button(key=f"cp_nav_{i}"))
+        self.assertIsNotNone(at.button(key="go_tradingview"))
+        self.assertIsNotNone(at.button(key="yahoo_load"))
         self.assertTrue(any("Historische" in x.label for x in at.button))
+
+    def test_tradingview_cta_opens_data_hub(self):
+        at = self.fresh()
+        at.button(key="go_tradingview").click().run()
+        self.assertEqual(len(at.exception), 0, str([x.message for x in at.exception]))
+        self.assertEqual(at.session_state["cp_page"], "02  DATA HUB")
+        self.assertIsNotNone(at.get(key="tv_symbol"))
+        self.assertIsNotNone(at.get(key="csvupload"))
 
     def test_sidebar_buttons_switch_pages(self):
         at = self.fresh()
