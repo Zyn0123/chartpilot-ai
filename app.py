@@ -432,7 +432,35 @@ elif page.startswith("03"):
             st.error("Bild maximal 5 MB.")
         else:
             st.image(image,caption="Bildvorschau (noch keine Analyse)",use_container_width=True)
-        st.markdown("#### 01 — Optionale externe Bild-KI")
+        st.markdown("#### 01 — KOSTENLOS / SCREENSHOT + TRADINGVIEW-CSV")
+        with st.expander("Kostenlose Kurszonen aus passender CSV berechnen", expanded=False):
+            st.caption("Ohne API-Key: Screenshot dient nur als Vorschau. Die Preise und Setup-Zonen "
+                       "stammen **ausschließlich** aus deiner OHLC-CSV. "
+                       "Du musst sicherstellen, dass Symbol und Zeitrahmen zu diesem Bild passen.")
+            vc=st.file_uploader("TradingView-OHLC-CSV passend zum Screenshot",type=["csv"],key="vision_csv")
+            vsymbol=st.text_input("Symbol aus deinem TradingView-Export (manuell)",
+                                  value="XAUUSD",key="vision_csv_symbol")
+            if st.button("◆ Kostenlosen Drei-Strategien-Check aus CSV starten",
+                         disabled=vc is None,key="vision_csv_go"):
+                try:
+                    prices=load_ohlc(vc.getvalue())
+                    outcome,_,detail=analyze_strategies(prices,vsymbol,style,interval)
+                    st.session_state.vision_csv_analysis={
+                        "result":outcome,"diagnostics":detail,
+                        "filename":vc.name,"digest":sha256(vc.getvalue()).hexdigest(),
+                        "timeframe":interval,"market":vsymbol,
+                    }
+                    st.success("CSV technisch validiert; Chart-Symbol und Zeitraum sind nicht automatisch abgeglichen.")
+                except Exception as exc:
+                    st.error("Kursdatenprüfung fehlgeschlagen: "+str(exc))
+            cv=st.session_state.get("vision_csv_analysis")
+            if cv and vc and cv["digest"]==sha256(vc.getvalue()).hexdigest() and cv["timeframe"]==interval and cv["market"]==vsymbol:
+                st.markdown("### BERECHNETER PREISPLAN AUS DER CSV")
+                show_result(cv["result"])
+                show_strategy_board(cv["diagnostics"])
+            elif cv:
+                st.caption("Für diesen Datei-/Markt-/Zeitrahmen-Stand bitte erneut berechnen.")
+        st.markdown("#### 02 — Optionale externe Bild-KI")
         st.caption("Provider: Google Gemini ("+MODEL+"). Nur auf Knopfdruck. Ein persönlicher AI-Studio-API-Key wird benötigt; kostenlose Kontingente hängen vom Konto und Tarif ab.")
         st.info("Im kostenlosen Gemini-Tarif können eingereichte Inhalte zur Produktverbesserung verwendet werden. Bitte keine persönlichen Daten im Screenshot zeigen.")
         gemini_key=st.text_input("Gemini API-Key (nur für diese Sitzung, nicht in GitHub)",type="password",key="gemini_key")
