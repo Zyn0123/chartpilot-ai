@@ -42,6 +42,20 @@ class OfflineTests(unittest.TestCase):
         self.assertEqual(a['signal'],'SHORT')
         self.assertLess(a['take_profit'],a['proposed_entry'])
         self.assertLess(a['proposed_entry'],a['stop_loss'])
+    def test_no_trade_explains_unmet_breakout_conditions(self):
+        a,_,meta=analyze_ohlc(sample().rename(columns=lambda x:x.lower()),'Gold','Scalping','5m')
+        checks=meta['checks']
+        self.assertEqual(a['signal'],'NO TRADE')
+        self.assertEqual(checks['needed_confirmations'],2)
+        self.assertLess(checks['long_confirmations'],2)
+        self.assertLess(checks['short_confirmations'],2)
+        self.assertLess(checks['short_threshold'],checks['long_threshold'])
+
+    def test_long_trade_has_two_breakout_confirmations(self):
+        a,_,meta=analyze_ohlc(sample(break_kind='long').rename(columns=lambda x:x.lower()),'Gold','Scalping','5m')
+        self.assertEqual(a['signal'],'LONG')
+        self.assertTrue(meta['checks']['long_trend'])
+        self.assertEqual(meta['checks']['long_confirmations'],2)
 
 if __name__=='__main__':
     unittest.main()
