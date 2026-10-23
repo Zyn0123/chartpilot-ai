@@ -1,7 +1,7 @@
 """Konservativer, rein historischer Mini-Backtest – nie ein Ausführungs-/Live-Signal."""
 from __future__ import annotations
 import pandas as pd
-from offline import analyze_ohlc
+from strategies import analyze_strategies
 
 def run_backtest(df: pd.DataFrame, market: str, style: str, timeframe: str,
                  cost_points: float = 0., max_bars: int = 320) -> tuple[dict, pd.DataFrame]:
@@ -16,7 +16,7 @@ def run_backtest(df: pd.DataFrame, market: str, style: str, timeframe: str,
     while i < len(prices)-2:
         # Only use candles through i, decide AFTER bar i closes.
         context=prices.iloc[:i+1].copy()
-        a, _, info=analyze_ohlc(context,market,style,timeframe)
+        a, _, info=analyze_strategies(context,market,style,timeframe)
         if a['signal'] not in ('LONG','SHORT'):
             i+=1
             continue
@@ -65,7 +65,7 @@ def run_backtest(df: pd.DataFrame, market: str, style: str, timeframe: str,
             reason='Zeitlimit'
         gross=(exit_price-entry)*(1 if side=='LONG' else -1)
         realized_r=round((gross-cost_points)/risk,4)
-        deals.append({'Einstieg Kerze':i+1,'Ausstieg Kerze':j,'Richtung':side,
+        deals.append({'Setup':info.get('selected_strategy','UNBEKANNT'),'Einstieg Kerze':i+1,'Ausstieg Kerze':j,'Richtung':side,
                       'Entry':round(entry,5),'Exit':round(exit_price,5),
                       'Stop':round(planned_sl,5),'Target':round(planned_tp,5),
                       'Grund':reason,'Ergebnis (R)':realized_r})
