@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 import csv
+from hashlib import sha256
 from datetime import datetime, timezone
 from html import escape
 from pathlib import Path
@@ -423,6 +424,10 @@ elif page.startswith("03"):
                 unsafe_allow_html=True)
     image=st.file_uploader("TradingView-Chart als PNG / JPG / WEBP hochladen",type=["png","jpg","jpeg","webp"],key="vision_image")
     if image:
+        current_image_digest=sha256(image.getvalue()).hexdigest()
+        if st.session_state.get("vision_digest") != current_image_digest:
+            st.session_state.pop("vision_result",None)
+            st.session_state.pop("vision_name",None)
         if len(image.getvalue()) > 5_000_000:
             st.error("Bild maximal 5 MB.")
         else:
@@ -439,9 +444,11 @@ elif page.startswith("03"):
                     result=analyze_screenshot(image.getvalue(),image.type,gemini_key)
                 st.session_state.vision_result=result
                 st.session_state.vision_name=image.name
+                st.session_state.vision_digest=current_image_digest
             except Exception as exc:
                 st.error(str(exc))
-        if "vision_result" in st.session_state and st.session_state.get("vision_name")==image.name:
+        if ("vision_result" in st.session_state
+            and st.session_state.get("vision_digest")==current_image_digest):
             st.markdown("### AUSWERTUNG / EXTERNES KI-MODELL")
             show_result(st.session_state.vision_result,is_vision=True)
     else:
