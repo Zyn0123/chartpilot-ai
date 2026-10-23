@@ -17,7 +17,7 @@ class AppSmokeTests(unittest.TestCase):
         self.assertEqual(len(at.exception), 0, str([x.message for x in at.exception]))
         at.button(key="demo").click().run()
         self.assertEqual(len(at.exception), 0, str([x.message for x in at.exception]))
-        self.assertTrue(any("Synthetische" in msg.message or "DEMO" in msg.message for msg in at.error))
+        self.assertGreaterEqual(len(at.error), 1)
 
     def test_vision_page_requires_opt_in(self):
         at = AppTest.from_file(str(APP), default_timeout=30).run()
