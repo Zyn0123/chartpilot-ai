@@ -1,38 +1,84 @@
-# ChartPilot V1.3 – kostenlose historische Kursdaten
+# ◆ ChartPilot — Terminal V2
 
-Eigenstaendiges Streamlit-Dashboard, getrennt von ZYN0 Momentum Studio.
+**Eigenständiges Trading-Research-Tool** mit flachem Schwarz-Lila-Design, geschrieben in Python und gehostet über **Streamlit Community Cloud**. Komplett unabhängig vom ZYN0 Momentum Studio.
 
-## Bereitstellung auf Streamlit Community Cloud
+## Deploy
 
-Repository: `Zyn0123/chartpilot-ai` · Branch: `main` · Startdatei: `app.py`
+- Repository: `Zyn0123/chartpilot-ai`
+- Branch: `main`
+- Startdatei: `app.py`
+- Python 3.11+; `pip install -r requirements.txt && streamlit run app.py`
 
-Aenderungen am main-Branch sollten automatisch ein neues Deployment ausloesen.
-Falls die App nicht aktualisiert wird: Streamlit-App neu starten und Logs pruefen.
+Für Streamlit Cloud genügt die bestehende GitHub-Anbindung: Updates auf `main` werden automatisch deployed. Nach einem Update ggf. die Streamlit-App neu starten, falls ein Fehler oder eine alte Version angezeigt wird.
 
-## Neu in V1.3
+## Workspace
 
-- **Historische Marktdaten**: kostenlose Yahoo-Finance-Abfrage ueber `yfinance` (kein API-Key).
-- Verfuegbare Quellen: Gold-Future GC=F, S&P 500 Index ^GSPC, NASDAQ 100 Index ^NDX, E-Mini-Futures ES=F und NQ=F.
-- Zeitrahmen: 1m, 2m, 5m, 15m, 30m, 1h und 1d; je nach Intervall ein begrenzter historischer Zeitraum.
-- Daten werden maximal 5 Minuten zwischengespeichert, **nicht** automatisch sekundenaktuell aktualisiert.
-- Kerzenzeitstempel und Hinweis auf die letzte verfuegbare Kerze.
-- Bereits vorhandene CSV-Analyse, synthetische Demo und Screenshot-Vorschau bleiben erhalten.
-- EMA20/EMA50/ATR14 und rein regelbasierte LONG/SHORT/NO-TRADE-Uebungssignale.
+| Seite | Funktionen | Datenquelle |
+|---|---|---|
+| 01 Cockpit | echte historische OHLC-Kerzen, Kerzenchart, EMA20/50, ATR, regelbasierte LONG/SHORT/NO TRADE-Hypothese, optional 5m/15m/1h-Vergleich | Yahoo Finance (yfinance) |
+| 02 Data Hub | TradingView-CSV importieren, Time in Sekunden/Millisekunden/ISO, OHLC validieren, synthetischer Testdatensatz, CSV exportieren | Benutzer-CSV, Demo |
+| 03 Vision AI | Screenshot hochladen, **optional** Gemini-Bild-KI nach expliziter Einwilligung | persönlicher Gemini-Key |
+| 04 Strategy Lab | historischer Mini-Backtest ohne Lookahead, modellhafte Kosten, nächste Open als Entry, SL bei ambigem Bar zuerst, Trades exportieren | aktiver OHLC-Datensatz |
+| 05 Risk Desk | rein hypothetische Einheiten/virtuelles Risikobudget, ohne echte Brokerkontrakte | Nutzerwerte |
+| 06 Journal | Sitzungs-Log, CSV-Export; keine persistierte Datenbank | Streamlit session_state |
+| 07 Sources | Quellen, Annahmen, Einschränkungen, Links | Dokumentation |
 
-## Wichtige Einschraenkungen
+## Historische Märkte (Yahoo Finance)
 
-Yahoo Finance ist **kein garantierter Live-Datenfeed**, es kann Kursverzoegerungen, Sperren oder Abruffehler geben. Private Nutzung und geltende Daten-/Nutzungsbedingungen beachten.
-`GC=F` bezeichnet einen Gold-Future und ist **nicht** das TradingView-Symbol XAUUSD Spot.
-`^GSPC` und `^NDX` sind Indizes, keine handelbaren Brokerinstrumente.
-Abfragehistorien koennen durch Yahoo begrenzt sein (z. B. 1m ca. 7 Tage, andere intraday Intervalle max. 60 Tage). Technische Regeln sind nicht backgetestet.
-Die App ist **keine** KI-Screenshotanalyse, hat **keine** Brokeranbindung und fuehrt **keine** Echtgeldorders aus.
-CSV und Screenshot-Uploads bei Cloud-Betrieb werden auf Streamlit-Servern verarbeitet. Keine Kontodaten oder API-Schluessel hochladen.
+- **GC=F**: Gold-Future, **NICHT** XAUUSD Spot
+- **^GSPC**: S&P 500 Index, **kein** direkt handelbares Produkt
+- **^NDX**: NASDAQ 100 Index, **kein** direkt handelbares Produkt
+- **ES=F** und **NQ=F**: E-mini-Futures
+- **GLD**, **SPY**, **QQQ**: ETFs (nicht die zugrunde liegenden Spot-/Index-Kurse)
 
-## Lokal starten
+Intervallwahl: 1m/2m/5m/15m/30m/1h/1d, jeweils begrenzte abrufbare Historie. Aktualisierung manuell per Button, mit fünfminütigem Cache. **Keine Echtzeitgarantie.** Öffentliche Yahoo-Daten können verzögert, lückenhaft, eingeschränkt oder zeitweise nicht verfügbar sein. Nutzung/Lizenzbestimmungen beachten; für automatische Echtgeld-Orders wären lizenzierte Broker-Datenfeeds, zuverlässige Ausführung und deutlich mehr Tests erforderlich.
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+## TradingView als präzisere Quelle bereitstellen
 
-Tests lokal: `python -m unittest discover -s tests -v`.
+1. In TradingView **genau den Chart und das Symbol** öffnen, das später untersucht werden soll (z. B. OANDA:XAUUSD 5m). 
+2. Möglichst viele zusammenhängende Kerzen im Chart laden.
+3. Chartmenü → **Chartdaten exportieren** (falls im Account verfügbar).
+4. Im **DATA HUB** die CSV-Datei laden und manuell das genaue Symbol angeben.
+5. Zeitrahmen links auf den tatsächlichen Kerzenzeitraum einstellen; die App kann diesen nicht automatisch gegen das Original verifizieren.
+
+Akzeptierte Spalten: `Time`/`Date`, `Open`, `High`, `Low`, `Close`; `Volume` optional. Bis zu 10 MB, mindestens 60 Kerzen. Zeitzonen bitte kontrollieren. Die App ersetzt keine Lizenz zur Weitergabe fremder Kursdaten.
+
+## Vision AI / Opt-in
+
+Die App ist **ohne API-Key voll im Regelmodus nutzbar**. Echte automatische Screenshot-Bildanalyse läuft nur nach:
+- Bild-Upload (max. 5 MB, PNG/JPG/WEBP).
+- Eingabe eines eigenen **Gemini API-Keys** in ein Passwortfeld.
+- Aktivierung der Einwilligung, das Bild an Gemini zu senden.
+- Explizitem Klick auf **Screenshot mit Vision AI prüfen**.
+
+Modell: `gemini-2.5-flash`. Die Google Gemini-API bietet je nach Konto/Region/Modell begrenzte Free-Tier-Nutzung; **Kostenfreiheit ist keine Garantie**, und bei Nutzung eines kostenpflichtigen Kontos können Gebühren entstehen. Im kostenlosen Tarif können eingereichte Inhalte zur Produktverbesserung verwendet werden. Keine personenbezogenen Daten, Trading-Account-Daten oder Geheimnisse im Screenshot zeigen. **API-Key niemals in GitHub oder in Chat-Nachrichten posten.** Der Key wird nicht dauerhaft im Repository gespeichert.
+
+Die KI kann Preise, Zeitrahmen oder Kerzen fehlinterpretieren. Deshalb erzwingt die Software bei unklarem Symbol/Zeitrahmen bzw. widersprüchlichen Entry/SL/TP-Werten `NO TRADE`. Für konkrete Handelsentscheidungen OHLC-Daten und Brokerkurse unabhängig prüfen. Keine automatische Orderausführung.
+
+## Modell- und Risiko-Grenzen
+
+- **Kein geprüfter profitabler Algorithmus**: Test-Signale sind hypothesenbasierte Beispiele.
+- **Keine Echtgeldorder**: kein Broker, kein Copy-Trading, kein Auto-Trading.
+- **Backtest ist vereinfacht**: keine perfekte Tickabfolge, Ausführung am Stop bei SL/TP gleichzeitig, Preis-/Punktekosten sind nur manuell angenähert, keine Markttiefe/Margin/Echtzeit.
+- **Aktualität wird ausgewiesen**: Letzte Kerze und Datenalter sind Pflichtangaben.
+- **Session-Journal** bleibt nur bis zum Sitzungsende. Sichere es per CSV.
+- In Streamlit Community Cloud verarbeiten Streamlit-Server deine Uploads. Keine privaten Schlüssel oder Kontoauszüge hochladen.
+- Echtgeldhandel mit Hebel kann zu schnellen und erheblichen Verlusten führen.
+
+## Tests und Qualität
+
+GitHub Actions führt `python -m compileall` sowie `python -m unittest discover -s tests -v` bei jedem Push aus. UI-Smoketests laufen ohne Live-Zugangsschlüssel. Externe Yahoo-/Gemini-Aufrufe werden **nicht** durch diese automatischen Tests als verfügbar bestätigt.
+
+## Projektstruktur
+
+- `app.py` — neue Navigation, UI und Abläufe
+- `theme.py` — Schwarz-Lila-Designsystem ohne Farbverläufe
+- `market_data.py` — historische Daten, eindeutige Instrumente
+- `offline.py` — CSV-Verarbeitung, Indikatoren/regelbasierte Setups
+- `engine.py` — Ergebnisvalidierung
+- `quality.py` — Datenqualität, Quellen- und Zeitstempel
+- `backtest.py` — konservativer Bar-Backtest
+- `vision.py` — optionales Gemini-Bildverständnis (Opt-in)
+- `tests/` — automatische Tests
+
+**Quellen/Dokumentation:** [TradingView-CSV-Export](https://de.tradingview.com/support/solutions/43000537255/), [Gemini API-Preise](https://ai.google.dev/gemini-api/docs/pricing), [Gemini Bildverarbeitung](https://ai.google.dev/gemini-api/docs/image-understanding), [Streamlit Secrets](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management).
