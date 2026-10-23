@@ -617,6 +617,9 @@ else:
     st.subheader("SOURCE CENTER / TRANSPARENZ")
     st.markdown("#### QUELLEN & KOMPATIBILITÄT")
     sources=pd.DataFrame([
+        {"Quelle":"Dukascopy (öffentliches Tagesarchiv)","Instrumente":"XAUUSD Spot / BID-Minutenkerzen (1m / 5m / 15m / 30m)",
+         "Einsatz":"Historisch, Abschlussdatum kann verzögert vorliegen; NICHT OANDA/TradingView",
+         "API-Key":"Nein"},
         {"Quelle":"Yahoo Finance (via yfinance)","Instrumente":"Futures GC=F / ES=F / NQ=F, Indizes ^GSPC / ^NDX, ETFs GLD / SPY / QQQ","Einsatz":"Historische Daten; verzögert/möglicherweise nicht erreichbar","API-Key":"Nein"},
         {"Quelle":"TradingView CSV-Export","Instrumente":"Was im Quellchart tatsächlich geladen wurde","Einsatz":"Manueller Import mit sichtbarem Datei-/Zeitstempel","API-Key":"Nein"},
         {"Quelle":"Synthetische Demo","Instrumente":"Keine","Einsatz":"Oberflächentest und Programm-Checks","API-Key":"Nein"},
@@ -635,7 +638,7 @@ else:
         "TradingView- und andere Fremddaten unterliegen den Nutzungs-/Lizenzbedingungen des jeweiligen Anbieters.",
     ])
     st.markdown("#### SOURCE LINKS")
-    st.markdown("[TradingView Chartdaten exportieren](https://de.tradingview.com/support/solutions/43000537255/) · [Streamlit Secrets](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) · [Gemini Free-Tier-Preise](https://ai.google.dev/gemini-api/docs/pricing)")
+    st.markdown("[Dukascopy historische Daten](https://www.dukascopy.com/api/data/get/historical-data-export) · [TradingView Chartdaten exportieren](https://de.tradingview.com/support/solutions/43000537255/) · [Streamlit Secrets](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) · [Gemini Free-Tier-Preise](https://ai.google.dev/gemini-api/docs/pricing)")
 
 st.markdown('<div class="cp-footer">CHARTPILOT V2 · BLACK / PURPLE · PRIVATE RESEARCH TERMINAL · ANALYSE ≠ GEWINNGARANTIE · KEINE ECHTGELD-ORDERS</div>',
             unsafe_allow_html=True)
