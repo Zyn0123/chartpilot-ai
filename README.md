@@ -1,4 +1,4 @@
-# ◆ ChartPilot — Terminal V2
+# ◆ ChartPilot — Terminal V2.2 · Setup Radar + Trade-Zonen
 
 **Eigenständiges Trading-Research-Tool** mit flachem Schwarz-Lila-Design, geschrieben in Python und gehostet über **Streamlit Community Cloud**. Komplett unabhängig vom ZYN0 Momentum Studio.
 
@@ -15,13 +15,35 @@ Für Streamlit Cloud genügt die bestehende GitHub-Anbindung: Updates auf `main`
 
 | Seite | Funktionen | Datenquelle |
 |---|---|---|
-| 01 Cockpit | echte historische OHLC-Kerzen, Kerzenchart, EMA20/50, ATR, regelbasierte LONG/SHORT/NO TRADE-Hypothese, optional 5m/15m/1h-Vergleich | Yahoo Finance (yfinance) |
+| 01 Cockpit | historische OHLC-Kerzen, 3 getrennte Strategien (Breakout, Trend-Pullback, Range), hypothetische Entry-Zone, SL und TP1/TP2, optional 5m/15m/1h-Vergleich | Yahoo Finance (yfinance) |
 | 02 Data Hub | TradingView-CSV importieren, Time in Sekunden/Millisekunden/ISO, OHLC validieren, synthetischer Testdatensatz, CSV exportieren | Benutzer-CSV, Demo |
-| 03 Vision AI | Screenshot hochladen, **optional** Gemini-Bild-KI nach expliziter Einwilligung | persönlicher Gemini-Key |
-| 04 Strategy Lab | historischer Mini-Backtest ohne Lookahead, modellhafte Kosten, nächste Open als Entry, SL bei ambigem Bar zuerst, Trades exportieren | aktiver OHLC-Datensatz |
+| 03 Vision AI | Screenshot mit passender OHLC-CSV kostenlos auswerten (Kurse nur aus CSV); alternativ **optionale** Gemini-Bild-KI mit Preiszonen nach Einwilligung | CSV ohne Key / Gemini mit eigenem Key |
+| 04 Strategy Lab | historischer Mini-Backtest über die drei Setup-Typen, modellhafte Kosten, nächste Open als Entry, bei Doppelberührung Stop zuerst, Trades exportieren | aktiver OHLC-Datensatz |
 | 05 Risk Desk | rein hypothetische Einheiten/virtuelles Risikobudget, ohne echte Brokerkontrakte | Nutzerwerte |
 | 06 Journal | Sitzungs-Log, CSV-Export; keine persistierte Datenbank | Streamlit session_state |
 | 07 Sources | Quellen, Annahmen, Einschränkungen, Links | Dokumentation |
+
+## Neu: Drei Setup-Typen und Preiszonen
+
+- **Breakout:** EMA20/EMA50-Trend und 2 bestätigte Schlusskurse jenseits der älteren Spanne.
+- **Trend-Pullback:** Rücksetzer zu EMA20 mit bestätigtem Reclaim in Trendrichtung; RSI gegen extreme Überdehnung.
+- **Range:** Seitwärtsfilter (nahe EMAs), definierter historischer 25-Kerzen-Korridor und Umkehr am Rand.
+- **Zwei Zustände:** BESTÄTIGT (historische Kriterien) oder BEOBACHTEN. Ohne gültige Bedingungen bleibt NO TRADE.
+- Bei einem historisch bestätigten, logisch konsistenten Szenario: **Entry-Korridor, Stop-Loss, TP1 und TP2** und hypothetisches Chance/Risiko, ohne Handelskosten und Slippage.
+- Bei widersprüchlichen Long-/Short-Kandidaten: NO TRADE; keine automatische Echtgeldorder.
+- Für Screenshot-KI: Preisachse und letzte Kerzen müssen lesbar sein; Felder und Preisreihenfolge werden lokal geprüft. **Die App kann die im Bild geschätzten Preise nicht gegen einen Live-Feed verifizieren.**
+
+### Komplett kostenloser Weg ohne API-Key
+
+1. Screenshot im Bereich **VISION AI** hochladen.
+2. Auf TradingView im selben Markt und Zeitrahmen eine OHLC-CSV exportieren.
+3. **Kostenlose Kurszonen aus passender CSV berechnen** öffnen, CSV hochladen, Symbol manuell prüfen.
+4. **Kostenlosen Drei-Strategien-Check** starten.
+5. Entry-Zone, SL, TP1/TP2 sind Berechnungen **aus CSV-Daten**, niemals aus den Bildpixeln. Ohne passende CSV und ohne API-Key funktioniert die automatische Screenshot-Bildinterpretation noch nicht.
+
+### Optionale Bild-KI
+
+Erst nach eigener, ausdrücklicher Freigabe wird ein Bild mit einem eigenen Gemini-API-Key an Google übermittelt. Dann verlangt die Ausgabe zusätzlich Setup-Typ (Breakout/Pullback/Range), Entry-Zone, Stop-Loss, TP1/TP2 und eine Bestätigungsbedingung. Wenn Preisachse, Kerzen, Richtung oder Preisreihenfolge unklar sind, wird NO TRADE erzwungen. **Visuell geschätzte Level sind nicht brokerverifiziert und kein Ausführungsauftrag.** Kostenfreie Kontingente hängen vom Anbieter-Tarif und der Verfügbarkeit ab.
 
 ## Historische Märkte (Yahoo Finance)
 
@@ -74,7 +96,8 @@ GitHub Actions führt `python -m compileall` sowie `python -m unittest discover 
 - `app.py` — neue Navigation, UI und Abläufe
 - `theme.py` — Schwarz-Lila-Designsystem ohne Farbverläufe
 - `market_data.py` — historische Daten, eindeutige Instrumente
-- `offline.py` — CSV-Verarbeitung, Indikatoren/regelbasierte Setups
+- `offline.py` — CSV-Verarbeitung und Marktindikatoren
+- `strategies.py` — getrennte Breakout-, Pullback- und Range-Logik sowie Preiszonen
 - `engine.py` — Ergebnisvalidierung
 - `quality.py` — Datenqualität, Quellen- und Zeitstempel
 - `backtest.py` — konservativer Bar-Backtest
