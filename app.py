@@ -234,6 +234,19 @@ def show_entry_diagnostics(diagnostics: dict | None) -> None:
         )
 
 
+def show_strategy_board_archival(diagnostics: dict | None) -> None:
+    """Only non-actionable pattern labels on stale data, no old entry price plan."""
+    if not diagnostics or not diagnostics.get("strategies"):
+        st.write("Keine historischen Strategieergebnisse.")
+        return
+    for item in diagnostics["strategies"]:
+        st.markdown("**"+item["setup"]+"** – "+item["state"]+" / "
+                    +item["side"]+" (historischer Zeitpunkt)")
+        st.caption(item["why"])
+    st.caption("Historische Entry-Zonen, SL und TP werden hier bewusst nicht "
+               "als aktuelle Kursziele angezeigt. Für Backtests das Strategy Lab nutzen.")
+
+
 def display_dataset(ds: dict, show_full=True):
     audit=inspect_candles(ds["df"],ds["source"],ds["interval"],is_demo=ds["is_demo"])
     st.markdown('<div class="cp-strip"><b>DATENQUELLE:</b> '+escape(ds["source"])+
@@ -246,10 +259,33 @@ def display_dataset(ds: dict, show_full=True):
         st.warning("Datenprüfung: "+" | ".join(audit.issues))
     if ds["is_demo"]:
         st.error("DEMO: Künstliche Übungsdaten, KEIN reales Marktinstrument.")
+    # Archive data may be useful for studying patterns, but never show historical
+    # entry prices as current scalp signals. Keep original history intact for backtests.
+    not_current = audit.state != "VERZÖGERT / UNBESTÄTIGT"
+    if not_current:
+        st.error(
+            "◆ **KEIN AKTUELLES SIGNAL:** Dieser Datensatz ist "
+            + audit.state + ". Letzte verfügbare Kerze: " + audit.last_timestamp
+            + ". Insbesondere bei Scalping keine Einstiege aus diesem Stand ableiten."
+        )
     fancy_chart(ds["enriched"])
     if show_full:
-        show_result(ds["result"])
-        show_strategy_board(ds.get("diagnostics"))
+        if not_current:
+            # Fail closed for the user-facing signal while preserving raw historical
+            # calculations separately for research/backtesting.
+            historical=dict(ds["result"])
+            historical.update(
+                signal="NO TRADE",proposed_entry=None,stop_loss=None,
+                take_profit=None,risk_reward=None,
+                summary="ARCHIV / NICHT AKTUELL: Keine handelbare Gegenwartsaussage. "
+                        "Die historischen Bedingungen können im Strategy Lab untersucht werden."
+            )
+            show_result(historical)
+            with st.expander("Historische Strategie-Muster (kein aktuelles Signal)",expanded=False):
+                show_strategy_board_archival(ds.get("diagnostics"))
+        else:
+            show_result(ds["result"])
+            show_strategy_board(ds.get("diagnostics"))
         show_entry_diagnostics(ds.get("diagnostics"))
     return audit
 
