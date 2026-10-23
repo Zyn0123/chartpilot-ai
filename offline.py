@@ -98,6 +98,18 @@ def analyze_ohlc(df: pd.DataFrame, market: str, style: str, timeframe: str) -> t
         (enriched.low - prev_close).abs()
     ], axis=1).max(axis=1)
     enriched['ATR14'] = true_range.rolling(14, min_periods=14).mean()
+    delta = enriched.close.diff()
+    gain = delta.clip(lower=0).ewm(alpha=1/14, adjust=False, min_periods=14).mean()
+    loss = (-delta.clip(upper=0)).ewm(alpha=1/14, adjust=False, min_periods=14).mean()
+    relative = gain / loss.mask(loss == 0)
+    enriched['RSI14'] = 100 - 100 / (1 + relative)
+    enriched.loc[(loss == 0) & (gain > 0), 'RSI14'] = 100.
+    enriched.loc[(gain == 0) & (loss > 0), 'RSI14'] = 0.
+    enriched.loc[(gain == 0) & (loss == 0), 'RSI14'] = 50.
+    macd = enriched.close.ewm(span=12, adjust=False).mean() - enriched.close.ewm(span=26, adjust=False).mean()
+    enriched['MACD'] = macd
+    enriched['MACD_signal'] = macd.ewm(span=9, adjust=False).mean()
+    enriched['MACD_hist'] = enriched.MACD - enriched.MACD_signal
     last = enriched.iloc[-1]
     before = enriched.iloc[-21:-1]
     support = float(before.low.min())
@@ -134,6 +146,13 @@ def analyze_ohlc(df: pd.DataFrame, market: str, style: str, timeframe: str) -> t
             reason = 'Short-Ziel wäre nicht plausibel positiv; deshalb NO TRADE.'
         else:
             reason = 'Zwei Schlusskurse unterhalb der vorangegangenen Handelsspanne und EMA20 unter EMA50.'
+    rsi=float(last.RSI14) if pd.notna(last.RSI14) else None
+    macd_hist=float(last.MACD_hist)
+    extra_risks = []
+    if rsi is not None and (rsi >= 75 or rsi <= 25):
+        extra_risks.append('RSI ist sehr hoch/niedrig: erhöhte Gefahr eines überdehnten Moves; keine Umkehrprognose.')
+    if 'volume' not in enriched or enriched['volume'].fillna(0).sum() == 0:
+        extra_risks.append('Volumendaten fehlen oder sind nicht nutzbar; keine Volumenbestätigung.')
     raw = {
         'signal': signal, 'trend': trend,
         'market_regime': 'Trendfilter EMA20/EMA50' if trend != 'seitwärts' else 'Keine klare Trendbestätigung',
@@ -142,6 +161,8 @@ def analyze_ohlc(df: pd.DataFrame, market: str, style: str, timeframe: str) -> t
         'observations': [
             f'EMA20: {ema20:.3f} | EMA50: {ema50:.3f}',
             f'ATR(14): {atr:.3f} Preiseinheiten (Volatilität, keine Prognose)',
+            f'RSI(14): {rsi:.1f}' if rsi is not None else 'RSI(14): nicht verfügbar',
+            f'MACD-Histogramm: {macd_hist:+.4f} (Momentum, keine Gewinnwahrscheinlichkeit)',
             f'Letzter CSV-Schluss: {close:.3f}; {len(df)} verwendete Kerzen',
         ],
         'supports': [f'Tief der vorherigen 20 Kerzen: {support:.3f}'],
@@ -155,11 +176,12 @@ def analyze_ohlc(df: pd.DataFrame, market: str, style: str, timeframe: str) -> t
             'CSV kann alt, falsch skaliert oder unvollständig sein; kein Live-Markt.',
             'Keine Prüfung von News, Slippage, Spread, Kommissionen oder Marktliquidität.',
             'Historische Kursmuster gewährleisten keine Gewinne; erst im Demokonto prüfen.',
-        ],
+        ] + extra_risks,
         'detected_symbol': market + ' (manuell gewählt)',
         'detected_timeframe': timeframe + ' (manuell gewählt)',
         'screenshot_time': str(df.time.iloc[-1]) if 'time' in df else 'Zeitstempel nicht vorhanden',
     }
     result = normalize_analysis(raw)
-    meta = {'close': close, 'atr': atr, 'ema20': ema20, 'ema50': ema50, 'support': support, 'resistance': resistance}
+    meta = {'close': close, 'atr': atr, 'ema20': ema20, 'ema50': ema50,
+            'rsi': rsi, 'macd_hist': macd_hist, 'support': support, 'resistance': resistance}
     return result, enriched, meta
