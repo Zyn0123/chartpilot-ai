@@ -112,6 +112,7 @@ def set_dataset(df: pd.DataFrame, source: str, symbol: str, interval: str, is_de
     st.session_state.dataset = {
         "df":df, "enriched":enriched,"result":result,
         "source":source, "symbol":symbol, "interval":interval, "is_demo":is_demo,
+        "style":style,
     }
 
 def active():
@@ -161,6 +162,15 @@ label(st,"CHARTPILOT / SYSTEM V2","MARKET CONTROL TERMINAL","Eigenständige Anal
 st.markdown('<div class="cp-rule"></div>',unsafe_allow_html=True)
 
 ds=active()
+if ds and ds.get("style") != style:
+    # A change of trading style must never display an out-of-date analysis.
+    result, enriched, _ = analyze_ohlc(ds["df"], ds["symbol"], style, ds["interval"])
+    ds["result"] = result
+    ds["enriched"] = enriched
+    ds["style"] = style
+if ds and ds["interval"] != interval:
+    st.caption("Hinweis: Der geladene Datensatz bleibt auf " + ds["interval"] +
+               ". Die neue Zeitrahmen-Auswahl wirkt erst beim nächsten Import/Abruf.")
 
 if page.startswith("01"):
     st.subheader("MARKET COCKPIT")
