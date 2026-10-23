@@ -8,7 +8,10 @@ class AppSmokeTests(unittest.TestCase):
     def test_dashboard_opens_without_api_key(self):
         at = AppTest.from_file(str(APP), default_timeout=30).run()
         self.assertEqual(len(at.exception), 0, str([x.message for x in at.exception]))
-        self.assertGreaterEqual(len(at.success), 1)
+        # Navigation and market controls must remain interactive after the sidebar redesign.
+        self.assertGreaterEqual(len(at.radio), 1)
+        self.assertGreaterEqual(len(at.selectbox), 3)
+        self.assertEqual(at.radio[0].value, "01  COCKPIT")
         self.assertTrue(any("Historische" in x.label for x in at.button))
 
     def test_demo_loads_and_chart_renders(self):
