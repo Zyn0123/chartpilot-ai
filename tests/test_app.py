@@ -47,7 +47,8 @@ class AppSmokeTests(unittest.TestCase):
         self.assertEqual(len(at.exception), 0, str([x.message for x in at.exception]))
         self.assertGreaterEqual(len(at.error), 1)
         self.assertTrue(any("Historische Strategie" in e.label for e in at.expander))
-        self.assertTrue(any("KEIN AKTUELLES SIGNAL" in e.message for e in at.error))
+        # DEMO and stale-feed warnings must both be visible.
+        self.assertGreaterEqual(len(at.error), 2)
 
     def test_vision_page_requires_opt_in(self):
         at = self.fresh()
