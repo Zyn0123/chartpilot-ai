@@ -1,37 +1,38 @@
-# ChartPilot AI V1.2 — kostenloses Streamlit-Dashboard
+# ChartPilot V1.3 – kostenlose historische Kursdaten
 
-Eigenständiges Projekt, unabhängig von ZYN0 Momentum Studio.
+Eigenstaendiges Streamlit-Dashboard, getrennt von ZYN0 Momentum Studio.
 
-## Veröffentlichung auf Streamlit Community Cloud
+## Bereitstellung auf Streamlit Community Cloud
 
-1. https://share.streamlit.io/ aufrufen und mit GitHub anmelden.
-2. **Create app** → **Deploy a public app from GitHub**.
-3. Repository: `Zyn0123/chartpilot-ai`; Branch: `main`; Main file path: `app.py`.
-4. App-Adresse festlegen und **Deploy** klicken. Für die aktuelle Version ist kein API-Key erforderlich.
+Repository: `Zyn0123/chartpilot-ai` · Branch: `main` · Startdatei: `app.py`
 
-## Funktionen
+Aenderungen am main-Branch sollten automatisch ein neues Deployment ausloesen.
+Falls die App nicht aktualisiert wird: Streamlit-App neu starten und Logs pruefen.
 
-- Chart-Dashboard im Browser ohne lokalen Python-Start.
-- Regelbasierte CSV-Analyse von Open, High, Low, Close (optional Time/Volume).
-- EMA20, EMA50, ATR14, vorangegangene 20-Kerzen-Hochs/Tiefs; hypothetische LONG/SHORT/NO-TRADE-Bewertung.
-- Screenshot-Upload nur zur **Bildvorschau**; noch **keine** KI-Screenshot-Auswertung.
-- Simulierte Übungsdaten (keine echten Goldkurse) inklusive Download.
-- Ergebnis mit Erklärungen, Einstiegs-Idee/SL/TP nur bei validem Regelsignal und CSV-Export.
-- Kein API-Key, keine laufende API-Abrechnung, keine Brokerverbindung oder Echtgeld-Orders.
+## Neu in V1.3
 
-## Grenzen
+- **Historische Marktdaten**: kostenlose Yahoo-Finance-Abfrage ueber `yfinance` (kein API-Key).
+- Verfuegbare Quellen: Gold-Future GC=F, S&P 500 Index ^GSPC, NASDAQ 100 Index ^NDX, E-Mini-Futures ES=F und NQ=F.
+- Zeitrahmen: 1m, 2m, 5m, 15m, 30m, 1h und 1d; je nach Intervall ein begrenzter historischer Zeitraum.
+- Daten werden maximal 5 Minuten zwischengespeichert, **nicht** automatisch sekundenaktuell aktualisiert.
+- Kerzenzeitstempel und Hinweis auf die letzte verfuegbare Kerze.
+- Bereits vorhandene CSV-Analyse, synthetische Demo und Screenshot-Vorschau bleiben erhalten.
+- EMA20/EMA50/ATR14 und rein regelbasierte LONG/SHORT/NO-TRADE-Uebungssignale.
 
-Die Cloud-App verarbeitet hochgeladene Dateien auf Streamlit-Servern. Lade keine Zugangsdaten hoch.
-Das öffentliche Repository enthält ausschließlich Code und synthetische Demonstrationsdaten.
-Die Auswahl von Symbol und Zeitrahmen wird nicht anhand der CSV verifiziert.
-Das System ist kein Live-Marktdatenfeed und die Strategie wurde nicht auf ihre Profitabilität geprüft.
-Zuerst nur mit simulierten Daten bzw. Paper-Trading testen.
+## Wichtige Einschraenkungen
 
-## Lokal
+Yahoo Finance ist **kein garantierter Live-Datenfeed**, es kann Kursverzoegerungen, Sperren oder Abruffehler geben. Private Nutzung und geltende Daten-/Nutzungsbedingungen beachten.
+`GC=F` bezeichnet einen Gold-Future und ist **nicht** das TradingView-Symbol XAUUSD Spot.
+`^GSPC` und `^NDX` sind Indizes, keine handelbaren Brokerinstrumente.
+Abfragehistorien koennen durch Yahoo begrenzt sein (z. B. 1m ca. 7 Tage, andere intraday Intervalle max. 60 Tage). Technische Regeln sind nicht backgetestet.
+Die App ist **keine** KI-Screenshotanalyse, hat **keine** Brokeranbindung und fuehrt **keine** Echtgeldorders aus.
+CSV und Screenshot-Uploads bei Cloud-Betrieb werden auf Streamlit-Servern verarbeitet. Keine Kontodaten oder API-Schluessel hochladen.
+
+## Lokal starten
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Tests: `python -m unittest discover -s tests -v`
+Tests lokal: `python -m unittest discover -s tests -v`.
