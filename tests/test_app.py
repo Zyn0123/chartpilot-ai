@@ -35,6 +35,7 @@ class AppSmokeTests(unittest.TestCase):
         at.button(key="demo").click().run()
         self.assertEqual(len(at.exception), 0, str([x.message for x in at.exception]))
         self.assertGreaterEqual(len(at.error), 1)
+        self.assertTrue(any("WARUM LONG" in e.label for e in at.expander))
 
     def test_vision_page_requires_opt_in(self):
         at = self.fresh()
