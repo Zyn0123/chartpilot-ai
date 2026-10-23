@@ -24,6 +24,15 @@ from vision import analyze_screenshot, MODEL
 ROOT = Path(__file__).resolve().parent
 DEMO = ROOT / "sample" / "demo_simuliert_5m.csv"
 MENU = ["01  COCKPIT", "02  DATA HUB", "03  VISION AI", "04  STRATEGY LAB", "05  RISK DESK", "06  JOURNAL", "07  SOURCES"]
+NAV_LABELS = {
+    "01  COCKPIT": "01    MARKT-COCKPIT",
+    "02  DATA HUB": "02    DATENZENTRALE",
+    "03  VISION AI": "03    VISION AI",
+    "04  STRATEGY LAB": "04    STRATEGIE-LABOR",
+    "05  RISK DESK": "05    RISIKO-DESK",
+    "06  JOURNAL": "06    TRADING-JOURNAL",
+    "07  SOURCES": "07    DATEN & QUELLEN",
+}
 
 st.set_page_config(page_title="ChartPilot / Terminal V2", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
 apply_theme(st)
@@ -157,18 +166,69 @@ def save_journal(ds):
     })
 
 with st.sidebar:
-    st.markdown('<div class="cp-brand">◆ CHART<b>PILOT</b></div><div class="cp-kicker">INDEPENDENT MARKET TERMINAL</div>',
-                unsafe_allow_html=True)
-    st.markdown("---")
-    page=st.radio("WORKSPACE",MENU,key="nav")
-    st.markdown("---")
-    st.markdown('<div class="cp-kicker">MARKET CONTEXT</div>',unsafe_allow_html=True)
-    symbol_label=st.selectbox("Instrument",list(MARKETS),index=0,key="symbol")
-    interval=st.selectbox("Kursintervall",list(PERIODS),index=2,key="interval")
-    style=st.selectbox("Trading-Stil",["Scalping","Daytrading","Swingtrading"],index=0,key="style")
-    st.success("KOSTENLOSER REGELMODUS AKTIV")
-    st.caption("Echte Marktdaten können verzögert sein. Kein Broker, keine Orders, kein automatisches Echtgeld-Trading.")
-    st.markdown('<div class="cp-pill">V2.0 / BUILD</div> <div class="cp-pill">PURPLE/BLACK</div>',unsafe_allow_html=True)
+    st.markdown(
+        '<div class="cp-sidebar-brand">'
+        '<div class="cp-sidebar-brand-row">'
+        '<div class="cp-sidebar-monogram">CP<span>◆</span></div>'
+        '<div><div class="cp-sidebar-name">CHART<span>PILOT</span></div>'
+        '<div class="cp-sidebar-tagline">MARKET RESEARCH TERMINAL</div></div>'
+        '</div>'
+        '<div class="cp-sidebar-version"><span class="cp-status-dot"></span> TERMINAL V2.1 '
+        '<span class="cp-version-right">PAPER MODE</span></div>'
+        '</div>', unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div class="cp-side-section"><span class="cp-side-section-number">01</span>'
+        '<span>WORKSPACE</span></div>', unsafe_allow_html=True
+    )
+    with st.container(key="cp_navigation"):
+        page = st.radio(
+            "Arbeitsbereich", MENU, key="nav",
+            format_func=lambda item: NAV_LABELS[item],
+            label_visibility="collapsed",
+        )
+    st.markdown(
+        '<div class="cp-side-section cp-side-section-market">'
+        '<span class="cp-side-section-number">02</span><span>MARKTKONTEXT</span></div>',
+        unsafe_allow_html=True
+    )
+    with st.container(key="cp_market_controls"):
+        symbol_label = st.selectbox("INSTRUMENT", list(MARKETS), index=0, key="symbol")
+        interval = st.selectbox("ZEITRAHMEN", list(PERIODS), index=2, key="interval")
+        style = st.selectbox("TRADING-STIL", ["Scalping", "Daytrading", "Swingtrading"], index=0, key="style")
+    st.markdown(
+        '<div class="cp-side-section cp-side-section-status">'
+        '<span class="cp-side-section-number">03</span><span>DATENSTATUS</span></div>',
+        unsafe_allow_html=True
+    )
+    sidebar_data = st.session_state.get("dataset")
+    if sidebar_data:
+        status_label = "DEMO / NICHT REAL" if sidebar_data.get("is_demo") else "HISTORISCHE DATEN"
+        source_name = str(sidebar_data.get("source", "Unbekannte Quelle"))
+        if len(source_name) > 52:
+            source_name = source_name[:49] + "..."
+        st.markdown(
+            '<div class="cp-side-status-card">'
+            '<div class="cp-side-status-title"><span class="cp-status-dot"></span>' + escape(status_label) + '</div>'
+            '<div class="cp-side-status-main">' + escape(str(sidebar_data.get("symbol", "–"))) + '</div>'
+            '<div class="cp-side-status-sub">' + escape(source_name) + '</div>'
+            '<div class="cp-side-status-bottom">INTERVALL <b>' + escape(str(sidebar_data.get("interval", "–"))) +
+            '</b><span>KERZEN <b>' + str(len(sidebar_data.get("df", []))) + '</b></span></div>'
+            '</div>', unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            '<div class="cp-side-status-card">'
+            '<div class="cp-side-status-title"><span class="cp-status-dot cp-status-inactive"></span>KEINE DATEN GELADEN</div>'
+            '<div class="cp-side-status-sub">Lade historische Kurse oder importiere eine CSV im Data Hub.</div>'
+            '</div>', unsafe_allow_html=True,
+        )
+    st.markdown(
+        '<div class="cp-side-footer">'
+        '<div class="cp-side-footer-line"><span>◆ SYSTEM</span><strong>RESEARCH ONLY</strong></div>'
+        '<div>Kein Live-Feed garantiert. Keine Broker-Verbindung oder Echtgeld-Orders.</div>'
+        '</div>', unsafe_allow_html=True
+    )
 
 label(st,"CHARTPILOT / SYSTEM V2","MARKET CONTROL TERMINAL","Eigenständige Analyseplattform · Flaches Schwarz-Lila-Design · Keine Echtgeld-Orderfunktion")
 st.markdown('<div class="cp-rule"></div>',unsafe_allow_html=True)
