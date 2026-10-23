@@ -55,6 +55,36 @@ Erst nach eigener, ausdrücklicher Freigabe wird ein Bild mit einem eigenen Gemi
 
 Intervallwahl: 1m/2m/5m/15m/30m/1h/1d, jeweils begrenzte abrufbare Historie. Aktualisierung manuell per Button, mit fünfminütigem Cache. **Keine Echtzeitgarantie.** Öffentliche Yahoo-Daten können verzögert, lückenhaft, eingeschränkt oder zeitweise nicht verfügbar sein. Nutzung/Lizenzbestimmungen beachten; für automatische Echtgeld-Orders wären lizenzierte Broker-Datenfeeds, zuverlässige Ausführung und deutlich mehr Tests erforderlich.
 
+## V2.4 – Aktuellere 1m/5m-XAUUSD-Referenzdaten (kostenloser API-Tarif)
+
+Da der Dukascopy-Archivtest nur Kurse bis zum 18.10.2026 zeigte und
+TradingView Basic keinen CSV-Export zuließ, gibt es jetzt im **Cockpit**
+ganz oben die freiwillige **TickerLayer-REST-Anbindung** für XAUUSD.
+
+- **Kostenloser Testzugang:** [TickerLayer Registrierung](https://tickerlayer.com/signup).
+  Laut Anbieter 3.000 REST-Abfragen pro Monat ohne Kreditkarte, kein WebSocket im Free-Tarif.
+- **API-Dokumentation:** [Commodity-Aggregate](https://tickerlayer.com/docs/products/commodities).
+  Unsere App ruft mit `x-api-key` nur historische Aggregate ab und zeigt die neuesten
+  **vollständig abgeschlossenen** 1m-, 5m-, 15m- oder 1h-Kerzen.
+- **Wichtig:** CFD-abgeleitete **indikative Referenzkurse**, keine offiziellen
+  OANDA:XAUUSD-Bid/Ask-Kurse. Brokerpreise und OHLC-Strukturen können abweichen.
+- Der Schlüssel wird nur in ein Streamlit-Passwortfeld eingegeben, nicht in GitHub
+  oder in den Chat. Streamlit Cloud verarbeitet ihn während der Sitzung. Kein
+  automatisches Nachladen und kein eigener WebSocket-Feed.
+- **Aktualität:** Für ein 5m-Chart dürfen die letzten Bar-Startzeiten höchstens
+  **13 Minuten** alt sein. Ältere Daten führen zu **kein aktuelles Signal**
+  und unterdrückten Entry-/TP-Preisen. Auch bei frischen Indikativdaten
+  bleibt die Ausgabe ein Forschungs- und Paper-Trading-Szenario.
+- **Verfügbarkeit offen:** Parsing und UI sind lokal/CI mit gemockten Antworten
+  geprüft; echte TickerLayer-Kurse und die Kontoberechtigung müssen noch in der
+  Streamlit-Cloud getestet werden.
+- Kein Key nötig, wenn ausschließlich historische Dukascopy-/Yahoo-Daten
+  oder synthetische Tests genutzt werden. Diese ersetzen jedoch **nicht**
+  die aktuellen 5m-Kerzen für Scalping.
+- Keine durch automatische Anfrage ausgelösten Echtgeldeingriffe.
+- Provider-Nutzungsbedingungen, insbesondere individuelle Nutzung und
+  Weitergabe, müssen eingehalten werden.
+
 ## Kostenloser XAUUSD-Abruf ohne TradingView-Upgrade (V2.3)
 
 **TradingView Basic blockiert den CSV-Export für diesen Nutzer.** Deshalb gibt es jetzt im
@@ -167,6 +197,7 @@ GitHub Actions führt `python -m compileall` sowie `python -m unittest discover 
 - `market_data.py` — historische Yahoo-Daten (Alternativmarkt)
 - `dukascopy_data.py` — kostenlose historische XAUUSD-BID-Daten, Binär-Decoder, Resampling
 - `oanda_data.py` — optionaler OANDA-v20-Practice-MID-Kerzenabruf, nur lesend
+- `tickerlayer_data.py` — aktuelle indikative XAUUSD-REST-Historie per Free-Tier-Key, streng zeitgeprüft
 - `offline.py` — CSV-Verarbeitung und Marktindikatoren
 - `strategies.py` — getrennte Breakout-, Pullback- und Range-Logik sowie Preiszonen
 - `engine.py` — Ergebnisvalidierung
