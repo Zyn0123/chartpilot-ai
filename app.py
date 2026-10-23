@@ -61,6 +61,18 @@ def fancy_chart(history: pd.DataFrame) -> None:
     ).configure(background="#100b18")
     st.altair_chart(chart, use_container_width=True)
     st.caption("◆ Lila: steigende Kerze   ◆ Pink: fallende Kerze   ◆ Weiß: EMA20   ◆ Dunkellila: EMA50  ·  Kerzenfarben sind keine Handlungsempfehlung.")
+    if "RSI14" in frame.columns and frame["RSI14"].notna().any():
+        rsi_line = alt.Chart(frame).mark_line(color="#b568ff",strokeWidth=2).encode(
+            x=alt.X("x:Q",title="Kerze",axis=alt.Axis(grid=False)),
+            y=alt.Y("RSI14:Q",title="RSI 14",scale=alt.Scale(domain=[0,100])),
+            tooltip=[alt.Tooltip("x:Q"),alt.Tooltip("RSI14:Q",format=".1f")])
+        thresholds = alt.Chart(pd.DataFrame({"level":[30.,70.]})).mark_rule(
+            color="#76519c",strokeDash=[5,5],strokeWidth=1).encode(y="level:Q")
+        rsi_chart = (rsi_line + thresholds).properties(height=110).configure_view(
+            stroke="#332244",fill="#100b18").configure_axis(
+            labelColor="#b3a6c5",titleColor="#c9b6de",gridColor="#24142f")
+        st.altair_chart(rsi_chart,use_container_width=True)
+        st.caption("RSI 14: 30 / 70 sind Orientierungszonen, keine automatisch gültigen Kauf-/Verkaufssignale.")
 
 def bullets(items):
     for x in items:
