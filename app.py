@@ -1,4 +1,4 @@
-"""ChartPilot V2.2 · independent black/purple market research workstation.
+"""ChartPilot V2.3 · independent black/purple market research workstation.
 
 Trading education and paper trading only. No automatic or real-money order routing.
 """
@@ -17,6 +17,7 @@ import streamlit as st
 
 from backtest import run_backtest
 from market_data import MARKETS, PERIODS, fetch_history
+from dukascopy_data import fetch_spot_gold, SOURCE as DUKASCOPY_SOURCE, SUPPORTED as SPOT_PERIODS
 from offline import analyze_ohlc, load_ohlc
 from strategies import analyze_strategies
 from quality import inspect_candles
@@ -36,12 +37,17 @@ NAV_LABELS = {
     "07  SOURCES": "07    DATEN & QUELLEN",
 }
 
-st.set_page_config(page_title="ChartPilot / Terminal V2.2", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="ChartPilot / Terminal V2.3", page_icon="◆", layout="wide", initial_sidebar_state="expanded")
 apply_theme(st)
 
 @st.cache_data(ttl=300, show_spinner=False, max_entries=24)
 def cached_feed(symbol: str, interval: str) -> pd.DataFrame:
     return fetch_history(symbol, interval)
+
+@st.cache_data(ttl=1800, show_spinner=False, max_entries=5)
+def cached_spot(interval: str) -> pd.DataFrame:
+    # Dukascopy publishes historical daily files, not a streaming price feed.
+    return fetch_spot_gold(interval=interval)
 
 def fancy_chart(history: pd.DataFrame) -> None:
     """Candles/EMA in a genuinely data-scaled chart: no decorative fake chart lines."""
@@ -264,7 +270,7 @@ with st.sidebar:
         '<div><div class="cp-sidebar-name">CHART<span>PILOT</span></div>'
         '<div class="cp-sidebar-tagline">MARKET RESEARCH TERMINAL</div></div>'
         '</div>'
-        '<div class="cp-sidebar-version"><span class="cp-status-dot"></span> TERMINAL V2.1 '
+        '<div class="cp-sidebar-version"><span class="cp-status-dot"></span> TERMINAL V2.3 '
         '<span class="cp-version-right">PAPER MODE</span></div>'
         '</div>', unsafe_allow_html=True
     )
@@ -292,7 +298,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
     with st.container(key="cp_market_controls"):
-        symbol_label = st.selectbox("INSTRUMENT", list(MARKETS), index=0, key="symbol")
+        symbol_label = st.selectbox("YAHOO-ALTERNATIVINSTRUMENT", list(MARKETS), index=0, key="symbol")
         interval = st.selectbox("ZEITRAHMEN", list(PERIODS), index=2, key="interval")
         style = st.selectbox("TRADING-STIL", ["Scalping", "Daytrading", "Swingtrading"], index=0, key="style")
     st.markdown(
@@ -347,17 +353,28 @@ if ds and ds["interval"] != interval:
 if page.startswith("01"):
     st.subheader("MARKET COCKPIT")
     st.markdown(
-        '<div class="cp-slab"><div class="cp-kicker">PRIMÄRQUELLE / TRADINGVIEW</div>'
-        '<h3>XAUUSD-Chartkerzen aus deinem TradingView-Export</h3>'
-        '<div class="cp-tiny">Keine automatische TradingView-Live-Verbindung: '
-        'Original-Kerzen per CSV laden und in ChartPilot auswerten. '
-        'Spotgold und Gold-Future werden niemals gleichgesetzt.</div></div>',
+        '<div class="cp-slab"><div class="cp-kicker">XAUUSD SPOT / KOSTENLOSE HISTORISCHE DATEN</div>'
+        '<h3>Gold-Spotkerzen direkt abrufen – ohne TradingView-Abo</h3>'
+        '<div class="cp-tiny">Quelle: Dukascopy · historische BID-Kerzen (nicht OANDA/TradingView). '
+        'Tagesarchive können verspätet erscheinen. Keine Echtzeitkurse und keine automatische Orders.</div></div>',
         unsafe_allow_html=True,
     )
-    if st.button("◆ TradingView-CSV importieren",type="primary",key="go_tradingview",use_container_width=True):
+    if interval in SPOT_PERIODS:
+        if st.button("◆ Kostenlos XAUUSD-Spotkerzen laden (Dukascopy)",type="primary",key="spot_load",use_container_width=True):
+            try:
+                with st.spinner("Dukascopy-Tagesarchive abrufen und abgeschlossene Kerzen zusammenfügen ..."):
+                    df=cached_spot(interval)
+                    set_dataset(df,DUKASCOPY_SOURCE,"XAUUSD (Dukascopy BID)",interval)
+                st.success("Historische Spotgold-Kerzen abgerufen. Quellenpreise weichen von OANDA ab. Letzte Kerzenzeit unten prüfen.")
+            except Exception as exc:
+                st.error("Dukascopy-Daten konnten nicht geladen werden: "+str(exc))
+                st.info("Die kostenlose Quelle kann gedrosselt sein oder Tagesdaten verspätet bereitstellen. Kein Abo erforderlich.")
+    else:
+        st.warning("Für den Dukascopy-Spotabruf bitte links 1m, 5m, 15m oder 30m wählen.")
+    if st.button("TradingView-CSV importieren (falls verfügbar)",key="go_tradingview",use_container_width=True):
         st.session_state.cp_page="02  DATA HUB"
         st.rerun()
-    st.markdown("#### ALTERNATIVE: HISTORISCHE YAHOO-MARKTDATEN")
+    st.markdown("#### ALTERNATIVE: HISTORISCHE YAHOO-MARKTDATEN (ANDERES INSTRUMENT)")
     st.caption("Der folgende Abruf verwendet Yahoo Finance – **nicht** TradingView. "
                "Die links ausgewählte Gold-Variante GC=F ist ein Future, kein XAUUSD-Spotkurs.")
     ds=active()
@@ -392,8 +409,9 @@ if page.startswith("01"):
                     '<h3>EMA20 / EMA50 &nbsp; • &nbsp; ATR14 &nbsp; • &nbsp; Ausbruchsbestätigung</h3>'
                     '<div class="cp-tiny">Kostenlos, regelbasiert, ohne garantierte Prognose. Vision AI separat opt-in.</div></div>',
                     unsafe_allow_html=True)
-    st.markdown("### MULTI-TIMEFRAME WATCH")
-    st.caption("Vergleicht historische Trends auf mehreren Zeitfenstern; kein kontinuierliches Monitoring.")
+    st.markdown("### MULTI-TIMEFRAME WATCH / YAHOO-ALTERNATIVQUELLE")
+    st.caption("Dieser Vergleich lädt Yahoo-Symbole – NICHT Dukascopy XAUUSD oder TradingView OANDA:XAUUSD. "
+               "Nur historische Forschung, keine fortlaufende Überwachung.")
     if st.button("5m / 15m / 1h vergleichen",key="multitf"):
         rows=[]
         for tf in ["5m","15m","1h"]:
@@ -409,6 +427,9 @@ if page.startswith("01"):
 
 elif page.startswith("02"):
     st.subheader("DATA HUB  /  ECHTE KERZEN")
+    st.info("Für einen kostenlosen XAUUSD-Abruf ohne CSV gehe ins **Cockpit** "
+            "und klicke auf **Dukascopy Spotkerzen laden**. "
+            "Der CSV-Export bei TradingView kann ein kostenpflichtiges Abo erfordern.")
     st.markdown("#### 01 — TRADINGVIEW-CHARTDATEN (PRIMÄR)")
     st.markdown(
         "Öffne deinen **XAUUSD-Spotchart** in TradingView (z. B. `OANDA:XAUUSD`), "
