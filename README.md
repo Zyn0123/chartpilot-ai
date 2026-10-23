@@ -55,6 +55,18 @@ Erst nach eigener, ausdrücklicher Freigabe wird ein Bild mit einem eigenen Gemi
 
 Intervallwahl: 1m/2m/5m/15m/30m/1h/1d, jeweils begrenzte abrufbare Historie. Aktualisierung manuell per Button, mit fünfminütigem Cache. **Keine Echtzeitgarantie.** Öffentliche Yahoo-Daten können verzögert, lückenhaft, eingeschränkt oder zeitweise nicht verfügbar sein. Nutzung/Lizenzbestimmungen beachten; für automatische Echtgeld-Orders wären lizenzierte Broker-Datenfeeds, zuverlässige Ausführung und deutlich mehr Tests erforderlich.
 
+## Datenquelle im Cockpit (V2.3)
+
+TradingView-CSV ist für den gewünschten XAUUSD-Spotchart der **primäre manuelle Testweg**.
+Das Cockpit bietet direkt einen Button **TradingView-CSV importieren**, der zum Data Hub führt.
+Der automatisch abrufbare historische Yahoo-Feed bleibt eine **deutlich gekennzeichnete Alternativquelle**,
+z. B. GC=F (Gold-Future); diese Kurse sind nicht als OANDA:XAUUSD auszugeben.
+Symbol und Kerzenintervall der CSV sind weiterhin **manuelle Angaben**, die die App nicht beweisen kann.
+Auch CSV-Daten sind historische Momentaufnahmen ohne automatisches Streaming.
+Wenn Chartdatenexport für das TradingView-Konto nicht verfügbar ist, funktioniert dieser Importweg nicht.
+In dem Fall brauchen wir eine andere, rechtlich nutzbare kostenlose Datenquelle oder ein Bild zur
+manuellen Besprechung hier im Chat; automatische Bildauswertung in der App ist weiterhin optional.
+
 ## TradingView als präzisere Quelle bereitstellen
 
 1. In TradingView **genau den Chart und das Symbol** öffnen, das später untersucht werden soll (z. B. OANDA:XAUUSD 5m). 
