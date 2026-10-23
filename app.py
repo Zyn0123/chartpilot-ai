@@ -346,16 +346,34 @@ if ds and ds["interval"] != interval:
 
 if page.startswith("01"):
     st.subheader("MARKET COCKPIT")
+    st.markdown(
+        '<div class="cp-slab"><div class="cp-kicker">PRIMÄRQUELLE / TRADINGVIEW</div>'
+        '<h3>XAUUSD-Chartkerzen aus deinem TradingView-Export</h3>'
+        '<div class="cp-tiny">Keine automatische TradingView-Live-Verbindung: '
+        'Original-Kerzen per CSV laden und in ChartPilot auswerten. '
+        'Spotgold und Gold-Future werden niemals gleichgesetzt.</div></div>',
+        unsafe_allow_html=True,
+    )
+    if st.button("◆ TradingView-CSV importieren",type="primary",key="go_tradingview",use_container_width=True):
+        st.session_state.cp_page="02  DATA HUB"
+        st.rerun()
+    st.markdown("#### ALTERNATIVE: HISTORISCHE YAHOO-MARKTDATEN")
+    st.caption("Der folgende Abruf verwendet Yahoo Finance – **nicht** TradingView. "
+               "Die links ausgewählte Gold-Variante GC=F ist ein Future, kein XAUUSD-Spotkurs.")
+    ds=active()
+    selected_symbol=ds["symbol"] if ds else symbol_label
+    selected_interval=ds["interval"] if ds else interval
     c1,c2,c3=st.columns([2.3,1.2,1.2])
     with c1:
-        st.markdown('<div class="cp-slab"><div class="cp-kicker">AUSGEWÄHLTER MARKT</div><h2>'+
-                    escape(symbol_label)+'</h2><div class="cp-tiny">Quelle: Yahoo Finance historisch · kein Spot-Ersatz</div></div>',
-                    unsafe_allow_html=True)
+        st.markdown('<div class="cp-slab"><div class="cp-kicker">GELADENER / AUSGEWÄHLTER MARKT</div><h2>'+
+                    escape(selected_symbol)+'</h2><div class="cp-tiny">'+
+                    escape(ds["source"] if ds else "Kein Datensatz geladen – alternative Quelle: Yahoo Finance")+
+                    '</div></div>', unsafe_allow_html=True)
     with c2:
-        st.metric("KERZENINTERVALL",interval)
+        st.metric("KERZENINTERVALL",selected_interval)
     with c3:
         st.metric("FOKUS",style.upper())
-    if st.button("📡 Historische Kurse laden / aktualisieren",type="primary",use_container_width=True):
+    if st.button("Historische Yahoo-Daten laden / aktualisieren (Alternativquelle)",key="yahoo_load",use_container_width=True):
         try:
             with st.spinner("Lade historische Kerzen..."):
                 df=cached_feed(MARKETS[symbol_label],interval)
@@ -391,19 +409,33 @@ if page.startswith("01"):
 
 elif page.startswith("02"):
     st.subheader("DATA HUB  /  ECHTE KERZEN")
-    st.markdown("#### 01 — TradingView-Export / Eigene CSV")
-    st.caption("Open, High, Low, Close; optional Time, Volume. TradingView exportiert die im Chart geladenen Kerzen.")
-    user_symbol=st.text_input("Bezeichnung der CSV-Quelle / Symbol (wird NICHT automatisch geprüft)",value="XAUUSD (manuell angegeben)")
+    st.markdown("#### 01 — TRADINGVIEW-CHARTDATEN (PRIMÄR)")
+    st.markdown(
+        "Öffne deinen **XAUUSD-Spotchart** in TradingView (z. B. `OANDA:XAUUSD`), "
+        "stelle ihn auf **5 Minuten** und wähle in der oberen Leiste **Chartdaten exportieren …**. "
+        "Die Datei enthält die auf dem Chart geladenen Kerzen. "
+        "[Offizielle TradingView-Anleitung](https://de.tradingview.com/support/solutions/43000537255/)."
+    )
+    st.caption("Die Exportfunktion muss in deinem TradingView-Konto verfügbar sein. "
+               "Falls du sie nicht siehst, ist der CSV-Weg für dein Konto möglicherweise eingeschränkt.")
+    st.info("**Quellenprüfung:** ChartPilot übernimmt die Preiswerte der CSV – nicht die Live-Kurse "
+            "von TradingView. Symbol und Zeitraum musst du mit dem Originalchart vergleichen.")
+    user_symbol=st.text_input("TradingView-Symbol aus dem Originalchart (bitte genau eintragen)",
+                              value="OANDA:XAUUSD",key="tv_symbol")
+    st.caption("Zeitrahmen links muss mit dem TradingView-Export übereinstimmen (z. B. 5m). "
+               "Die ausgewählten Daten werden als historisch gekennzeichnet.")
     csv_file=st.file_uploader("CSV-Datei auswählen",type=["csv"],key="csvupload")
     if st.button("CSV validieren und analysieren",disabled=csv_file is None,type="primary"):
         try:
             df=load_ohlc(csv_file.getvalue())
-            set_dataset(df,"CSV: "+csv_file.name,user_symbol,interval)
-            st.success("CSV auf OHLC-Konsistenz und Zeitstempel geprüft.")
+            set_dataset(df,"TradingView-CSV (vom Nutzer): "+csv_file.name,user_symbol.strip() or "UNBEKANNT",interval)
+            st.success("OHLC-Werte und Zeitstempel technisch geprüft. Bitte Symbol und 5m-Intervall manuell abgleichen.")
         except Exception as exc:
             st.error("Import fehlgeschlagen: "+str(exc))
-    st.markdown("#### 02 — Historische Online-Daten")
-    st.caption("Yahoo Finance (nicht garantiert live). Symbolbezeichnung links wählen, dann im Cockpit abrufen.")
+    st.markdown("#### 02 — HISTORISCHE ONLINE-ALTERNATIVE")
+    st.caption("Yahoo Finance (nicht TradingView, nicht garantiert live). "
+               "Für automatisches Laden im Cockpit links das Yahoo-Instrument wählen. "
+               "GC=F unterscheidet sich von OANDA:XAUUSD.")
     st.markdown("#### 03 — Testdatensatz (SYNTHETISCH)")
     if st.button("Simulierte Demo laden",key="demo"):
         df=load_ohlc(DEMO.read_bytes())
