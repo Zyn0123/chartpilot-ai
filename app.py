@@ -18,6 +18,7 @@ import streamlit as st
 from backtest import run_backtest
 from market_data import MARKETS, PERIODS, fetch_history
 from dukascopy_data import fetch_spot_gold, SOURCE as DUKASCOPY_SOURCE, SUPPORTED as SPOT_PERIODS
+from oanda_data import fetch_oanda_practice, SOURCE as OANDA_SOURCE, FRAMES as OANDA_FRAMES
 from offline import analyze_ohlc, load_ohlc
 from strategies import analyze_strategies
 from quality import inspect_candles
@@ -389,6 +390,31 @@ if ds and ds["interval"] != interval:
 
 if page.startswith("01"):
     st.subheader("MARKET COCKPIT")
+    with st.expander("◆ OANDA XAU_USD – optionaler Demo-Datenzugang (kein Abo von TradingView)", expanded=False):
+        st.caption("Optional: Historische MID-Kerzen direkt über OANDA v20 Practice abrufen. "
+                   "Voraussetzung: berechtigter API-Zugang zu einem OANDA-v20-Demokonto "
+                   "(nicht für jeden OANDA-Account verfügbar). "
+                   "Auch OANDA-API-Preise können von TradingView-OANDA abweichen.")
+        st.info("Nur die READ-Route für historische Kerzen wird verwendet. "
+                "Keine Kontostände, keine Orders und kein Live-Account-Endpunkt. "
+                "Du benötigst keinen Echtgeldhandel dafür.")
+        token=st.text_input("OANDA v20 Practice API-Token (nicht hier im Chat teilen)",
+                            type="password",key="oanda_token")
+        st.caption("Token wird nur für diese Anfrage an OANDA gesendet. "
+                   "Bei Streamlit Cloud verarbeitet der Cloud-Server die Eingabe; "
+                   "die App speichert ihn nicht in GitHub oder im Journal.")
+        if st.button("OANDA-Demo-MID-Kerzen laden",
+                     disabled=not (token and interval in OANDA_FRAMES),
+                     key="oanda_load"):
+            try:
+                with st.spinner("Abgeschlossene OANDA-Demo-Kerzen abrufen ..."):
+                    df=fetch_oanda_practice(token,interval)
+                    set_dataset(df,OANDA_SOURCE,"OANDA:XAU_USD (Demo MID)",interval)
+                st.success("Historische OANDA-Demokerzen geladen. Datenalter, Zeitpunkt "
+                           "und Bildquelle bitte mit TradingView abgleichen.")
+            except Exception as exc:
+                st.error(str(exc))
+        st.markdown("[Offizielle OANDA-v20-API-Anleitung](https://developer.oanda.com/rest-live-v20/introduction/)")
     st.markdown(
         '<div class="cp-slab"><div class="cp-kicker">XAUUSD SPOT / KOSTENLOSE HISTORISCHE DATEN</div>'
         '<h3>Gold-Spotkerzen direkt abrufen – ohne TradingView-Abo</h3>'
@@ -654,6 +680,10 @@ else:
     st.subheader("SOURCE CENTER / TRANSPARENZ")
     st.markdown("#### QUELLEN & KOMPATIBILITÄT")
     sources=pd.DataFrame([
+        {"Quelle":"OANDA v20 Practice (optional, eigener Token)",
+         "Instrumente":"XAU_USD (historische MID-Kerzen; nicht automatisch identisch mit TradingView)",
+         "Einsatz":"Nur GET der letzten abgeschlossenen Kerzen, kein Live-Streaming",
+         "API-Key":"Ja: OANDA Practice v20 (regional verfügbar)"},
         {"Quelle":"Dukascopy (öffentliches Tagesarchiv)","Instrumente":"XAUUSD Spot / BID-Minutenkerzen (1m / 5m / 15m / 30m)",
          "Einsatz":"Historisch, Abschlussdatum kann verzögert vorliegen; NICHT OANDA/TradingView",
          "API-Key":"Nein"},
