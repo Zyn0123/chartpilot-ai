@@ -129,15 +129,56 @@ def show_result(a: dict, *, is_vision: bool=False) -> None:
                +" · "+a["detected_symbol"]+" · "+a["detected_timeframe"]+" · "+a["screenshot_time"])
 
 def set_dataset(df: pd.DataFrame, source: str, symbol: str, interval: str, is_demo=False):
-    result, enriched, _ = analyze_ohlc(df,symbol,style,interval)
+    result, enriched, diagnostics = analyze_ohlc(df,symbol,style,interval)
     st.session_state.dataset = {
-        "df":df, "enriched":enriched,"result":result,
+        "df":df, "enriched":enriched,"result":result, "diagnostics":diagnostics,
         "source":source, "symbol":symbol, "interval":interval, "is_demo":is_demo,
         "style":style,
     }
 
 def active():
     return st.session_state.get("dataset")
+
+def show_entry_diagnostics(diagnostics: dict | None) -> None:
+    """Why the strict current rules say NO TRADE (also useful if LONG/SHORT appears)."""
+    if not diagnostics or not diagnostics.get("checks"):
+        return
+    checks = diagnostics["checks"]
+    long_trend = checks["long_trend"]
+    short_trend = checks["short_trend"]
+    long_count = checks["long_confirmations"]
+    short_count = checks["short_confirmations"]
+    with st.expander("◆ WARUM LONG / SHORT / NO TRADE?", expanded=True):
+        st.caption(
+            "Die Engine erkennt aktuell nur strenge Ausbrüche: EMA20/EMA50-Trend "
+            "plus **zwei** Schlusskurse jenseits der vorherigen 20-Kerzen-Spanne "
+            "mit 0,15 ATR Abstand. Keine KI-Prognose."
+        )
+        left, right = st.columns(2)
+        with left:
+            st.markdown("**LONG-CHECK**")
+            st.write(("✅" if long_trend else "❌") + " EMA20 über EMA50 und Kurs über EMA20")
+            st.write(("✅" if long_count == 2 else "❌") +
+                     f" Ausbruch: {long_count}/2 Kerzen bestätigt")
+            st.caption(f"Preisgrenze für die zwei Schlüsse: über {checks['long_threshold']:.3f}")
+        with right:
+            st.markdown("**SHORT-CHECK**")
+            st.write(("✅" if short_trend else "❌") + " EMA20 unter EMA50 und Kurs unter EMA20")
+            st.write(("✅" if short_count == 2 else "❌") +
+                     f" Ausbruch: {short_count}/2 Kerzen bestätigt")
+            st.caption(f"Preisgrenze für die zwei Schlüsse: unter {checks['short_threshold']:.3f}")
+        if long_trend and long_count < 2:
+            st.info("Beobachtung LONG: Der Trendfilter passt, aber der Ausbruch ist noch nicht vollständig bestätigt.")
+        elif short_trend and short_count < 2:
+            st.info("Beobachtung SHORT: Der Trendfilter passt, aber der Ausbruch ist noch nicht vollständig bestätigt.")
+        elif not long_trend and not short_trend:
+            st.info("Weder der LONG- noch der SHORT-Trendfilter ist derzeit bestätigt.")
+        st.caption(
+            "RSI und MACD sind derzeit zusätzliche Informationen, aber **keine** "
+            "Einstiegsbedingungen. Scalping und Daytrading nutzen in dieser Version "
+            "dieselben Einstiegsregeln; die Modi sind noch nicht individuell optimiert."
+        )
+
 
 def display_dataset(ds: dict, show_full=True):
     audit=inspect_candles(ds["df"],ds["source"],ds["interval"],is_demo=ds["is_demo"])
@@ -154,6 +195,7 @@ def display_dataset(ds: dict, show_full=True):
     fancy_chart(ds["enriched"])
     if show_full:
         show_result(ds["result"])
+        show_entry_diagnostics(ds.get("diagnostics"))
     return audit
 
 def save_journal(ds):
@@ -244,9 +286,10 @@ st.markdown('<div class="cp-rule"></div>',unsafe_allow_html=True)
 ds=active()
 if ds and ds.get("style") != style:
     # A change of trading style must never display an out-of-date analysis.
-    result, enriched, _ = analyze_ohlc(ds["df"], ds["symbol"], style, ds["interval"])
+    result, enriched, diagnostics = analyze_ohlc(ds["df"], ds["symbol"], style, ds["interval"])
     ds["result"] = result
     ds["enriched"] = enriched
+    ds["diagnostics"] = diagnostics
     ds["style"] = style
 if ds and ds["interval"] != interval:
     st.caption("Hinweis: Der geladene Datensatz bleibt auf " + ds["interval"] +
