@@ -82,6 +82,36 @@ Bei vollständiger OHLC-Historie wird der bisherige Drei-Strategien-Check gestar
 Dukascopy [Historical Data Export](https://www.dukascopy.com/api/data/get/historical-data-export)
 und [Chartdatenformat (Beispieldokumentation)](https://github.com/zero-was-here/tradingbot/blob/main/docs/data.md).
 
+## Warum der Dukascopy-Chart nicht dem TradingView-Chart entspricht
+
+Ein aufgezeichneter Vergleich vom **23.10.2026** ergab:
+- ChartPilot hatte nur historische Kerzen bis **18.10.2026 23:55 UTC** aus dem Dukascopy-Minutenarchiv.
+- Der Nutzer verglich diese alten BID-Preise (~4185 USD) mit TradingView OANDA am 23.10. (~3996 USD).
+- Hauptursache ist **die fehlende zeitliche Überlappung**, nicht nur ein normaler Broker-Spread.
+- Direkte Dukascopy-Minutenarchive erscheinen mit Verzögerung; Tage können fehlen.
+  Die Oberfläche unterdrückt daher in diesem Fall den **aktuellen** LONG-/SHORT-Plan und markiert NO TRADE;
+  historischer Strategy-Lab-Backtest bleibt möglich.
+
+### Optionaler OANDA-v20-Demokursweg (gleicher Anbieter wie TradingView, nicht exakt identischer Feed)
+
+Im **Cockpit** ist ein zuschaltbarer Bereich **OANDA XAU_USD – Demo** verfügbar.
+Mit eigenem berechtigtem v20-**Practice**-Token (ohne Eintrag in GitHub) kann die App
+`GET https://api-fxpractice.oanda.com/v3/instruments/XAU_USD/candles`
+aufrufen. Nur ein fester **Lese-Endpunkt**, keine Orders oder Kontodaten.
+Der Abruf liefert die letzten **400 abgeschlossenen MID-Kerzen**, z. B. M5,
+die anschließend mit Zeitstempel analysiert werden.
+Die App sendet den Token nur über die HTTPS-Anfrage an die Practice-API.
+Dieser Zugang kann je nach Land, OANDA-Kontotyp und Produktverfügbarkeit fehlen.
+Die v20-Demo-Anbindung wurde bislang **nur mit simulierten API-Antworten getestet**.
+Auch echte OANDA-API-Historie und der TradingView-OANDA-Chart können sich
+je nach Pricing-Komponente, Konto und Zeitstempel unterscheiden.
+Ein öffentlicher Streamlit-Cloud-Server verarbeitet die eingegebene Zeichenfolge:
+**Token nicht teilen oder in GitHub ablegen.**
+
+Offizielle Dokumentation: [OANDA Getting Started](https://developer.oanda.com/rest-live-v20/introduction/) ·
+[Practice REST Host](https://developer.oanda.com/rest-live-v20/development-guide/) ·
+[OANDA Candlestick-Definitionen](https://developer.oanda.com/rest-live-v20/instrument-df/).
+
 ## Datenquelle im Cockpit (V2.3)
 
 TradingView-CSV ist für den gewünschten XAUUSD-Spotchart der **primäre manuelle Testweg**.
@@ -136,6 +166,7 @@ GitHub Actions führt `python -m compileall` sowie `python -m unittest discover 
 - `theme.py` — Schwarz-Lila-Designsystem ohne Farbverläufe
 - `market_data.py` — historische Yahoo-Daten (Alternativmarkt)
 - `dukascopy_data.py` — kostenlose historische XAUUSD-BID-Daten, Binär-Decoder, Resampling
+- `oanda_data.py` — optionaler OANDA-v20-Practice-MID-Kerzenabruf, nur lesend
 - `offline.py` — CSV-Verarbeitung und Marktindikatoren
 - `strategies.py` — getrennte Breakout-, Pullback- und Range-Logik sowie Preiszonen
 - `engine.py` — Ergebnisvalidierung
