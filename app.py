@@ -17,6 +17,7 @@ import streamlit as st
 from backtest import run_backtest
 from market_data import MARKETS, PERIODS, fetch_history
 from offline import analyze_ohlc, load_ohlc
+from strategies import analyze_strategies
 from quality import inspect_candles
 from theme import apply_theme, label
 from vision import analyze_screenshot, MODEL
@@ -117,6 +118,21 @@ def show_result(a: dict, *, is_vision: bool=False) -> None:
         st.warning("Hypothetische Werte ohne Orderbuch, Spread oder Broker-Ausführung. Vor Nutzung im Paper-Trading prüfen.")
     else:
         st.info("Kein bestätigter Einstieg. Die KI bzw. Regelprüfung darf ausdrücklich NO TRADE ausgeben.")
+    if is_vision:
+        st.markdown("### ◆ BILD-KI / PREISZONEN")
+        if sign != "NO TRADE":
+            lo=a.get("entry_zone_low")
+            hi=a.get("entry_zone_high")
+            tp2=a.get("take_profit_2")
+            st.warning("Visuelle Preis-Schätzungen aus dem Screenshot – nicht gegen OHLC- oder Brokerkurse geprüft.")
+            parts=st.columns(4)
+            parts[0].metric("ENTRY-ZONE",f"{lo:.3f} – {hi:.3f}" if lo is not None and hi is not None else "NICHT LESBAR")
+            parts[1].metric("TP1",f"{a['take_profit']:.3f}")
+            parts[2].metric("TP2",f"{tp2:.3f}" if tp2 is not None else "NICHT LESBAR")
+            parts[3].metric("SETUP",a.get("setup_type","NONE"))
+            st.write("**Bestätigung vor einem möglichen Trade:** "+(a.get("entry_trigger") or "Keine bestätigt"))
+        else:
+            st.info("Kein belastbarer Preisplan aus dem Bild ableitbar.")
     with st.expander("BEDINGUNGEN & RISIKEN",expanded=True):
         st.markdown("**LONG nur falls**")
         st.write(a["long_condition"] or "Nicht bekannt")
@@ -129,7 +145,7 @@ def show_result(a: dict, *, is_vision: bool=False) -> None:
                +" · "+a["detected_symbol"]+" · "+a["detected_timeframe"]+" · "+a["screenshot_time"])
 
 def set_dataset(df: pd.DataFrame, source: str, symbol: str, interval: str, is_demo=False):
-    result, enriched, diagnostics = analyze_ohlc(df,symbol,style,interval)
+    result, enriched, diagnostics = analyze_strategies(df,symbol,style,interval)
     st.session_state.dataset = {
         "df":df, "enriched":enriched,"result":result, "diagnostics":diagnostics,
         "source":source, "symbol":symbol, "interval":interval, "is_demo":is_demo,
@@ -138,6 +154,38 @@ def set_dataset(df: pd.DataFrame, source: str, symbol: str, interval: str, is_de
 
 def active():
     return st.session_state.get("dataset")
+
+def show_strategy_board(diagnostics: dict | None) -> None:
+    if not diagnostics or not diagnostics.get("strategies"):
+        return
+    strategies = diagnostics["strategies"]
+    st.markdown("### ◆ SETUP RADAR / DREI STRATEGIEN")
+    st.caption("Historische Regelbedingungen – keine Live-Handelsanweisung. "
+               "BEOBACHTEN ist ausdrücklich kein bestätigter Einstieg.")
+    cols=st.columns(3)
+    names={"BREAKOUT":"01 / BREAKOUT","PULLBACK":"02 / TREND-PULLBACK","RANGE":"03 / RANGE"}
+    for col, candidate in zip(cols,strategies):
+        with col:
+            st.markdown("**"+names[candidate["setup"]]+"**")
+            st.write(candidate["side"]+" · "+candidate["state"] if candidate["state"]=="BESTÄTIGT" else "BEOBACHTEN / KEIN ENTRY")
+            st.caption(candidate["why"])
+            with st.expander("Trigger / Bedingung"):
+                st.write(candidate["trigger"])
+    plan=diagnostics.get("plan")
+    if not plan:
+        st.info("Keine bestätigte Entry-Zone. Details zu den drei Beobachtungen stehen oben.")
+        return
+    st.markdown("#### HYPOTHETISCHER PREISPLAN / "+plan["setup"]+" "+plan["side"])
+    cs=st.columns(5)
+    cs[0].metric("ENTRY-ZONE",f"{plan['zone_low']:.3f} – {plan['zone_high']:.3f}")
+    cs[1].metric("ENTRY-REFERENZ",f"{plan['entry']:.3f}")
+    cs[2].metric("STOP-LOSS",f"{plan['stop']:.3f}")
+    cs[3].metric("TP1",f"{plan['tp1']:.3f}")
+    cs[4].metric("TP2",f"{plan['tp2']:.3f}")
+    st.caption(f"Rechnerisches CRV TP1 1:{plan['rr1']:.2f}, TP2 1:{plan['rr2']:.2f}"
+               " – ohne Gebühren, Spread, Slippage und Gaps.")
+    st.write("**Bestätigung:** "+plan["trigger"])
+
 
 def show_entry_diagnostics(diagnostics: dict | None) -> None:
     """Why the strict current rules say NO TRADE (also useful if LONG/SHORT appears)."""
@@ -148,11 +196,11 @@ def show_entry_diagnostics(diagnostics: dict | None) -> None:
     short_trend = checks["short_trend"]
     long_count = checks["long_confirmations"]
     short_count = checks["short_confirmations"]
-    with st.expander("◆ WARUM LONG / SHORT / NO TRADE?", expanded=True):
+    with st.expander("◆ WARUM LONG / SHORT / NO TRADE? / BREAKOUT-CHECK", expanded=False):
         st.caption(
-            "Die Engine erkennt aktuell nur strenge Ausbrüche: EMA20/EMA50-Trend "
-            "plus **zwei** Schlusskurse jenseits der vorherigen 20-Kerzen-Spanne "
-            "mit 0,15 ATR Abstand. Keine KI-Prognose."
+            "Dieses Feld erklärt nur BREAKOUT: EMA20/50-Trend und zwei Schlüsse "
+            "außerhalb der alten 20-Kerzen-Spanne mit ATR-Abstand. "
+            "Pullback und Range werden oben eigenständig geprüft."
         )
         left, right = st.columns(2)
         with left:
@@ -174,9 +222,8 @@ def show_entry_diagnostics(diagnostics: dict | None) -> None:
         elif not long_trend and not short_trend:
             st.info("Weder der LONG- noch der SHORT-Trendfilter ist derzeit bestätigt.")
         st.caption(
-            "RSI und MACD sind derzeit zusätzliche Informationen, aber **keine** "
-            "Einstiegsbedingungen. Scalping und Daytrading nutzen in dieser Version "
-            "dieselben Einstiegsregeln; die Modi sind noch nicht individuell optimiert."
+            "RSI ist im Pullback ein Überdehnungsfilter; MACD dient als Zusatzinformation. "
+            "Die Strategien sind nicht auf Profitabilität validiert."
         )
 
 
@@ -195,6 +242,7 @@ def display_dataset(ds: dict, show_full=True):
     fancy_chart(ds["enriched"])
     if show_full:
         show_result(ds["result"])
+        show_strategy_board(ds.get("diagnostics"))
         show_entry_diagnostics(ds.get("diagnostics"))
     return audit
 
@@ -286,7 +334,7 @@ st.markdown('<div class="cp-rule"></div>',unsafe_allow_html=True)
 ds=active()
 if ds and ds.get("style") != style:
     # A change of trading style must never display an out-of-date analysis.
-    result, enriched, diagnostics = analyze_ohlc(ds["df"], ds["symbol"], style, ds["interval"])
+    result, enriched, diagnostics = analyze_strategies(ds["df"], ds["symbol"], style, ds["interval"])
     ds["result"] = result
     ds["enriched"] = enriched
     ds["diagnostics"] = diagnostics
@@ -332,7 +380,7 @@ if page.startswith("01"):
         for tf in ["5m","15m","1h"]:
             try:
                 df=cached_feed(MARKETS[symbol_label],tf)
-                result,_,_=analyze_ohlc(df,symbol_label,style,tf)
+                result,_,_=analyze_strategies(df,symbol_label,style,tf)
                 aud=inspect_candles(df,"Yahoo Finance",tf)
                 rows.append({"Zeitrahmen":tf,"Trend":result["trend"],"Historisches Setup":result["signal"],
                              "Letzte Kerze":aud.last_timestamp,"Status":aud.state})
@@ -370,6 +418,7 @@ elif page.startswith("02"):
 
 elif page.startswith("03"):
     st.subheader("VISION AI  /  SCREENSHOT ANALYSIS")
+    st.caption("Screenshot → Setup (Breakout / Pullback / Range), Entry-Zone, Stop-Loss, TP1/TP2 und Bestätigungsbedingung.")
     st.markdown('<div class="cp-strip"><b>FREE BY DEFAULT</b> · Du brauchst keine API für den DATA HUB. Bild-KI ist eine freiwillige Zusatzfunktion.</div>',
                 unsafe_allow_html=True)
     image=st.file_uploader("TradingView-Chart als PNG / JPG / WEBP hochladen",type=["png","jpg","jpeg","webp"],key="vision_image")
@@ -398,7 +447,7 @@ elif page.startswith("03"):
     else:
         st.info("Lade ein Chartbild hoch. Ohne API-Zugang bleibt die kostenlose Bildvorschau verfügbar.")
     st.markdown("#### 02 — Wie wir falsche Signale vermeiden")
-    st.write("Die Bild-KI muss Unsicherheit offen nennen und darf bei unlesbaren Preisachsen oder unbekanntem Zeitrahmen keine Einstiegspreise erfinden. Der Regelmodus arbeitet unabhängig davon ausschließlich mit OHLC-Kerzen.")
+    st.write("Die Bild-KI muss Markt, Zeitraum, Preisachse und jüngste Kerzen sicher lesen. Stimmen Entry-Zone, Stop und zwei Ziele nicht zusammen, zeigt ChartPilot NO TRADE. Die kostenlosen OHLC-Daten prüfen drei Strategien separat.")
     st.caption("Optionaler KI-Anbieter, keine Verbindung zum Broker. Vertrauliche Screenshots nur hochladen, wenn du der externen Verarbeitung zustimmst.")
 
 elif page.startswith("04"):
