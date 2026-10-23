@@ -286,7 +286,8 @@ def display_dataset(ds: dict, show_full=True):
         else:
             show_result(ds["result"])
             show_strategy_board(ds.get("diagnostics"))
-        show_entry_diagnostics(ds.get("diagnostics"))
+        if not not_current:
+            show_entry_diagnostics(ds.get("diagnostics"))
     return audit
 
 def save_journal(ds):
