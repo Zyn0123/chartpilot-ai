@@ -51,6 +51,136 @@ hr {border-color:#39224e !important;}
 .cp-signal strong {font-size:2.2rem;letter-spacing:-.045em;color:#f7edff;}
 .cp-tiny {font-size:.76rem;color:#a79ab8;}
 .cp-footer {font-size:.77rem;color:#8b809e;border-top:1px solid #39224e;padding-top:1rem;margin-top:2.3rem;}
+
+/* === SIDEBAR / V2.1 — dedicated editorial navigation, flat colors only === */
+[data-testid="stSidebar"] {
+  background:#08060d !important;
+  border-right:2px solid #43235c !important;
+}
+[data-testid="stSidebarContent"] {
+  background:#08060d !important;
+  padding:0 0.85rem 1.4rem !important;
+}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+  gap:0.38rem !important;
+}
+.cp-sidebar-brand {
+  padding:1.25rem 0.25rem 1.05rem;
+  border-bottom:1px solid #342142;
+  margin-bottom:0.8rem;
+}
+.cp-sidebar-brand-row {display:flex;align-items:center;gap:0.9rem;}
+.cp-sidebar-monogram {
+  width:48px;height:48px;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;color:#f8edff;background:#301449;border:1px solid #9853eb;
+  font-weight:950;font-size:1.2rem;letter-spacing:-.1em;position:relative;
+}
+.cp-sidebar-monogram span {
+  position:absolute;right:-5px;top:-7px;background:#ac66f5;color:#08050c;
+  border:2px solid #08060d;font-size:.55rem;line-height:1;padding:3px;
+}
+.cp-sidebar-name {
+  color:#f5edff;font-size:1.36rem;font-weight:950;line-height:1.1;
+  white-space:nowrap;letter-spacing:-.065em;
+}
+.cp-sidebar-name span {color:#bf80ff;}
+.cp-sidebar-tagline {
+  color:#8d7f9b;font-size:.62rem;letter-spacing:.10em;font-weight:750;margin-top:0.38rem;
+}
+.cp-sidebar-version {
+  margin-top:1.1rem;color:#d0b0ef;font-size:.68rem;font-weight:850;
+  letter-spacing:.05em;display:flex;align-items:center;gap:.42rem;
+}
+.cp-version-right {margin-left:auto;color:#827289;font-size:.61rem;}
+.cp-status-dot {
+  display:inline-block;vertical-align:middle;width:7px;height:7px;
+  flex-shrink:0;background:#a855f7;border:1px solid #d1a9fa;
+}
+.cp-status-inactive {background:#594e60;border-color:#817086;}
+.cp-side-section {
+  display:flex;align-items:center;gap:.58rem;
+  color:#b7a3c9;font-weight:900;letter-spacing:.14em;font-size:.67rem;
+  margin:1.05rem .24rem .48rem;
+  padding-bottom:.5rem;border-bottom:1px solid #25192f;
+}
+.cp-side-section-number {color:#be79f5;font-size:.65rem;}
+.cp-side-section-market {margin-top:1.1rem;}
+.cp-side-section-status {margin-top:1.05rem;}
+/* Turn one accessible Streamlit radio group into a left-rail navigation. */
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) [role="radiogroup"] {
+  gap:.28rem !important;width:100% !important;display:flex !important;flex-direction:column !important;
+}
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"] {
+  display:flex !important;align-items:center !important;
+  width:100% !important;min-height:42px !important;box-sizing:border-box !important;
+  padding:.45rem .75rem !important;margin:0 !important;
+  background:#100a18 !important;border:1px solid #1f152b !important;
+  border-left:3px solid transparent !important;
+  color:#c2b5d1 !important;cursor:pointer !important;
+  border-radius:0 !important;
+}
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"]:hover {
+  background:#1c102b !important;border-color:#6d3d92 !important;
+}
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"]:has(input:checked) {
+  background:#2a153e !important;border:1px solid #8551b8 !important;
+  border-left:3px solid #c17bff !important;color:#fff !important;
+}
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"]:has(input:focus-visible) {
+  outline:2px solid #d9acff !important;outline-offset:2px !important;
+}
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"] > div:first-of-type {
+  display:none !important;
+}
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) label[data-baseweb="radio"] [data-testid="stMarkdownContainer"] p {
+  font-size:.76rem !important;font-weight:850 !important;
+  line-height:1.35 !important;letter-spacing:.035em !important;
+  color:inherit !important;margin:0 !important;
+}
+:is(.st-key-cp_navigation,[data-testid="st-key-cp_navigation"]) [data-testid="stRadio"] {
+  width:100% !important;margin:0 !important;
+}
+/* Market controls are a distinct and quieter control surface. */
+:is(.st-key-cp_market_controls,[data-testid="st-key-cp_market_controls"]) {
+  background:#100a18 !important;border:1px solid #30203e !important;
+  border-top:2px solid #63348e !important;padding:.75rem .72rem .85rem !important;
+}
+:is(.st-key-cp_market_controls,[data-testid="st-key-cp_market_controls"]) [data-testid="stWidgetLabel"] p {
+  font-size:.65rem !important;font-weight:850 !important;color:#a48db9 !important;
+  letter-spacing:.10em !important;
+}
+:is(.st-key-cp_market_controls,[data-testid="st-key-cp_market_controls"]) [data-baseweb="select"] > div {
+  background:#1a1027 !important;border:1px solid #4e3069 !important;
+  min-height:36px !important;color:#e9dcf6 !important;font-size:.77rem !important;
+}
+:is(.st-key-cp_market_controls,[data-testid="st-key-cp_market_controls"]) [data-testid="stVerticalBlock"] {
+  gap:.3rem !important;
+}
+.cp-side-status-card {
+  background:#120b1a;border:1px solid #38234b;padding:.85rem .82rem .73rem;
+}
+.cp-side-status-title {
+  font-size:.62rem;font-weight:900;letter-spacing:.095em;color:#bd94dc;
+  display:flex;align-items:center;gap:.5rem;margin:0 0 .55rem;
+}
+.cp-side-status-main {color:#f5edff;font-weight:850;font-size:.82rem;line-height:1.25;overflow-wrap:anywhere;}
+.cp-side-status-sub {color:#9585a7;font-size:.72rem;line-height:1.4;overflow-wrap:anywhere;margin:.26rem 0 .7rem;}
+.cp-side-status-bottom {
+  border-top:1px solid #2c1d39;padding-top:.62rem;
+  font-size:.65rem;font-weight:700;letter-spacing:.04em;color:#9d8bab;
+  display:flex;justify-content:space-between;
+}
+.cp-side-status-bottom b {color:#e5ccf8;}
+.cp-side-footer {
+  margin:1.15rem .1rem .55rem;padding:.82rem .65rem 0;
+  border-top:1px solid #342043;color:#83738f;font-size:.67rem;line-height:1.45;
+}
+.cp-side-footer-line {
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:.63rem;letter-spacing:.06em;font-weight:850;color:#977eaa;margin-bottom:.5rem;
+}
+.cp-side-footer-line strong {color:#c596f2;}
+
 @media(max-width:900px) {
  [data-testid="stAppViewBlockContainer"]{padding:1rem 1rem 3rem;}
  h1,.cp-title {font-size:2rem !important;}
